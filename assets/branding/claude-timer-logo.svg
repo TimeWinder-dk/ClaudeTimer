@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">ClaudeTimer logo</title>
+  <desc id="desc">A warm orange clock face combined with an abstract AI spark and a TimeWinder-inspired winding hand.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2B211A"/>
+      <stop offset="1" stop-color="#15110E"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F3A35C"/>
+      <stop offset="1" stop-color="#D97745"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="236" fill="url(#bg)"/>
+  <circle cx="512" cy="512" r="326" fill="#211A15" stroke="url(#orange)" stroke-width="54"/>
+  <circle cx="512" cy="512" r="264" fill="#F7EFE7"/>
+  <g fill="#5A4538">
+    <rect x="500" y="220" width="24" height="56" rx="12"/>
+    <rect x="500" y="748" width="24" height="56" rx="12"/>
+    <rect x="220" y="500" width="56" height="24" rx="12"/>
+    <rect x="748" y="500" width="56" height="24" rx="12"/>
+  </g>
+  <path d="M350 438 L432 624 L512 474 L590 624 L682 356" fill="none" stroke="#30241D" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="512" cy="474" r="34" fill="url(#orange)"/>
+  <g transform="translate(708 302) rotate(10)">
+    <path d="M0-104 C18-60 20-32 10-8 C34-21 62-22 104-6 C63 12 36 28 18 50 C26 75 24 102 8 136 C-10 95-25 70-48 54 C-73 65-101 66-136 52 C-95 32-69 16-53-7 C-64-31-64-59-49-94 C-29-54-15-27 8-12 C17-36 16-64 0-104Z" fill="url(#orange)"/>
+    <circle cx="-1" cy="5" r="20" fill="#F7EFE7"/>
+  </g>
+  <path d="M294 692 A288 288 0 0 0 716 722" fill="none" stroke="#D97745" stroke-width="22" stroke-linecap="round"/>
+  <path d="M694 695 L748 727 L691 754" fill="#D97745"/>
+</svg>
