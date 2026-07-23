@@ -1,7 +1,9 @@
 # ClaudeTimer
 
-En lille Windows 11-inspireret WPF-app, der viser Claude Code-forbrug for det
-aktuelle 5-timers vindue og 7-døgnsvinduet.
+En lille Windows 11-inspireret WPF-app, der viser Claude Code-forbrug for alle
+aktive grænser: det aktuelle 5-timers vindue, den ugentlige grænse og eventuelle
+model-afgrænsede uger (fx Fable). Kortene bygges dynamisk ud fra API'ets
+`limits`-liste, så nye grænser dukker op automatisk uden kodeændringer.
 
 Appen viser for hvert vindue:
 

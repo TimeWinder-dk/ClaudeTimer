@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows.Threading;
 using ClaudeTimer.Models;
 using ClaudeTimer.Services;
@@ -43,9 +45,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string? _errorText;
 
-    public UsageCardViewModel FiveHour { get; } = new("5 timer", "AKTUEL SESSION");
-
-    public UsageCardViewModel SevenDay { get; } = new("7 døgn", "UGENTLIG GRÆNSE");
+    public ObservableCollection<UsageCardViewModel> Cards { get; } = new();
 
     public IAsyncRelayCommand RefreshCommand { get; }
 
@@ -174,7 +174,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             var usage = await _usageClient.GetUsageAsync(_token, CancellationToken.None);
             Apply(usage);
-            HasData = usage.FiveHour is not null || usage.SevenDay is not null;
+            HasData = usage.Windows.Count > 0;
             StatusText = HasData ? "Forbruget er opdateret" : "Ingen forbrugsgrænser fundet";
             LastUpdatedText = $"Opdateret {_clock.Now:HH:mm:ss}";
             _refreshTimer.Start();
@@ -192,18 +192,47 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void Apply(ClaudeUsage usage)
     {
-        if (usage.FiveHour is { } fiveHour)
+        // Sammenflet indkommende vinduer med de eksisterende kort ud fra Key, så
+        // nedtællinger fortsætter uafbrudt og nye/fjernede grænser afspejles.
+        var index = 0;
+        foreach (var window in usage.Windows)
         {
-            FiveHour.Update(fiveHour.Utilization, fiveHour.ResetsAt);
+            var existing = Cards.FirstOrDefault(card => card.Key == window.Key);
+            if (existing is null)
+            {
+                Cards.Insert(
+                    Math.Min(index, Cards.Count),
+                    CreateCard(window));
+            }
+            else
+            {
+                existing.Title = UsageWindowLabels.Title(window);
+                existing.Eyebrow = UsageWindowLabels.Eyebrow(window);
+                existing.Update(window.Utilization, window.ResetsAt);
+
+                var currentIndex = Cards.IndexOf(existing);
+                if (currentIndex != index)
+                {
+                    Cards.Move(currentIndex, index);
+                }
+            }
+
+            index++;
         }
 
-        if (usage.SevenDay is { } sevenDay)
+        var liveKeys = usage.Windows.Select(window => window.Key).ToHashSet();
+        for (var i = Cards.Count - 1; i >= 0; i--)
         {
-            SevenDay.Update(sevenDay.Utilization, sevenDay.ResetsAt);
+            if (!liveKeys.Contains(Cards[i].Key))
+            {
+                Cards.RemoveAt(i);
+            }
         }
 
-        if (_lastBoundaryRefresh != FiveHour.ResetsAt &&
-            _lastBoundaryRefresh != SevenDay.ResetsAt)
+        // Nulstil grænse-sporingen når en opdatering har flyttet nulstillingstiderne
+        // frem, så næste passage kan udløse en ny hentning.
+        if (_lastBoundaryRefresh is not null &&
+            usage.Windows.All(window => window.ResetsAt != _lastBoundaryRefresh))
         {
             _lastBoundaryRefresh = null;
         }
@@ -211,14 +240,28 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         UpdateCountdowns();
     }
 
+    private static UsageCardViewModel CreateCard(UsageWindow window)
+    {
+        var card = new UsageCardViewModel(
+            UsageWindowLabels.Title(window),
+            UsageWindowLabels.Eyebrow(window),
+            window.Key);
+        card.Update(window.Utilization, window.ResetsAt);
+        return card;
+    }
+
     private void UpdateCountdowns()
     {
         var now = _clock.Now;
-        FiveHour.Tick(now);
-        SevenDay.Tick(now);
+        foreach (var card in Cards)
+        {
+            card.Tick(now);
+        }
 
-        var reachedBoundary = new[] { FiveHour.ResetsAt, SevenDay.ResetsAt }
+        var reachedBoundary = Cards
+            .Select(card => card.ResetsAt)
             .Where(value => value is not null && value <= now)
+            .DefaultIfEmpty(null)
             .Max();
 
         if (reachedBoundary is not null && reachedBoundary != _lastBoundaryRefresh)

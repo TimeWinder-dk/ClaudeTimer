@@ -7,36 +7,74 @@ namespace ClaudeTimer.Tests;
 public sealed class ClaudeUsageClientTests
 {
     [Fact]
-    public async Task GetUsageAsync_ParsesBothWindowsAndSendsRequiredHeaders()
+    public async Task GetUsageAsync_ParsesLimitsArrayIncludingScopedWindows()
     {
         var handler = new RecordingHandler(
             HttpStatusCode.OK,
             """
             {
-              "five_hour": {
-                "utilization": 37.5,
-                "resets_at": "2026-07-23T14:30:00+00:00"
-              },
-              "seven_day": {
-                "utilization": 62,
-                "resets_at": "2026-07-28T08:15:12.123456+00:00"
-              }
+              "five_hour": { "utilization": 3, "resets_at": "2026-07-23T17:00:00+00:00" },
+              "seven_day": { "utilization": 0, "resets_at": "2026-07-30T01:00:00+00:00" },
+              "limits": [
+                { "kind": "session", "group": "session", "percent": 3,
+                  "resets_at": "2026-07-23T17:00:00+00:00", "scope": null },
+                { "kind": "weekly_all", "group": "weekly", "percent": 12,
+                  "resets_at": "2026-07-30T01:00:00+00:00", "scope": null },
+                { "kind": "weekly_scoped", "group": "weekly", "percent": 5,
+                  "resets_at": null, "scope": { "model": { "display_name": "Fable" } } }
+              ]
             }
             """);
         var client = CreateClient(handler);
 
         var result = await client.GetUsageAsync("secret-token", CancellationToken.None);
 
-        Assert.Equal(37.5, result.FiveHour?.Utilization);
-        Assert.Equal(DateTimeOffset.Parse("2026-07-23T14:30:00Z"), result.FiveHour?.ResetsAt);
-        Assert.Equal(62, result.SevenDay?.Utilization);
+        Assert.Equal(3, result.Windows.Count);
+
+        var session = result.Windows[0];
+        Assert.Equal("session", session.Kind);
+        Assert.Equal(3, session.Utilization);
+        Assert.Equal(DateTimeOffset.Parse("2026-07-23T17:00:00Z"), session.ResetsAt);
+
+        var weekly = result.Windows[1];
+        Assert.Equal("weekly_all", weekly.Kind);
+        Assert.Equal(12, weekly.Utilization);
+
+        var fable = result.Windows[2];
+        Assert.Equal("weekly_scoped", fable.Kind);
+        Assert.Equal("Fable", fable.ScopeModelName);
+        Assert.Null(fable.ResetsAt);
+        Assert.Equal("weekly_scoped|Fable", fable.Key);
+
         Assert.Equal("Bearer", handler.AuthorizationScheme);
         Assert.Equal("secret-token", handler.AuthorizationParameter);
         Assert.Equal("oauth-2025-04-20", handler.BetaHeader);
     }
 
     [Fact]
-    public async Task GetUsageAsync_AllowsNullWindows()
+    public async Task GetUsageAsync_FallsBackToLegacyFieldsWhenNoLimits()
+    {
+        var handler = new RecordingHandler(
+            HttpStatusCode.OK,
+            """
+            {
+              "five_hour": { "utilization": 37.5, "resets_at": "2026-07-23T14:30:00+00:00" },
+              "seven_day": { "utilization": 62, "resets_at": "2026-07-28T08:15:12.123456+00:00" }
+            }
+            """);
+        var client = CreateClient(handler);
+
+        var result = await client.GetUsageAsync("token", CancellationToken.None);
+
+        Assert.Equal(2, result.Windows.Count);
+        Assert.Equal("session", result.Windows[0].Kind);
+        Assert.Equal(37.5, result.Windows[0].Utilization);
+        Assert.Equal("weekly_all", result.Windows[1].Kind);
+        Assert.Equal(62, result.Windows[1].Utilization);
+    }
+
+    [Fact]
+    public async Task GetUsageAsync_AllowsNoWindows()
     {
         var client = CreateClient(new RecordingHandler(
             HttpStatusCode.OK,
@@ -44,8 +82,7 @@ public sealed class ClaudeUsageClientTests
 
         var result = await client.GetUsageAsync("token", CancellationToken.None);
 
-        Assert.Null(result.FiveHour);
-        Assert.Null(result.SevenDay);
+        Assert.Empty(result.Windows);
     }
 
     [Theory]

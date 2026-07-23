@@ -57,7 +57,7 @@ public sealed class ClaudeUsageClient(HttpClient httpClient) : IClaudeUsageClien
                     throw new ClaudeUsageException("Claude returnerede et tomt svar.");
                 }
 
-                return new ClaudeUsage(ToDomain(result.FiveHour), ToDomain(result.SevenDay));
+                return new ClaudeUsage(BuildWindows(result));
             }
             catch (JsonException exception)
             {
@@ -69,8 +69,50 @@ public sealed class ClaudeUsageClient(HttpClient httpClient) : IClaudeUsageClien
         }
     }
 
-    private static UsageWindow? ToDomain(UsageWindowResponse? value) =>
-        value is null ? null : new UsageWindow(value.Utilization, value.ResetsAt);
+    private static IReadOnlyList<UsageWindow> BuildWindows(UsageApiResponse response)
+    {
+        // Foretræk den moderne limits-liste, så nye grænser (fx yderligere
+        // model-afgrænsede uger) dukker op uden kodeændringer.
+        if (response.Limits is { Count: > 0 })
+        {
+            var windows = new List<UsageWindow>(response.Limits.Count);
+            foreach (var limit in response.Limits)
+            {
+                if (limit is null || string.IsNullOrWhiteSpace(limit.Kind))
+                {
+                    continue;
+                }
+
+                windows.Add(new UsageWindow(
+                    limit.Kind,
+                    limit.Group ?? limit.Kind,
+                    limit.Percent,
+                    limit.ResetsAt,
+                    limit.Scope?.Model?.DisplayName));
+            }
+
+            if (windows.Count > 0)
+            {
+                return windows;
+            }
+        }
+
+        // Fallback for ældre svar uden limits-array.
+        var legacy = new List<UsageWindow>(2);
+        if (response.FiveHour is { } fiveHour)
+        {
+            legacy.Add(new UsageWindow(
+                "session", "session", fiveHour.Utilization, fiveHour.ResetsAt, null));
+        }
+
+        if (response.SevenDay is { } sevenDay)
+        {
+            legacy.Add(new UsageWindow(
+                "weekly_all", "weekly", sevenDay.Utilization, sevenDay.ResetsAt, null));
+        }
+
+        return legacy;
+    }
 
     private static ClaudeUsageException CreateApiException(HttpStatusCode statusCode) =>
         statusCode switch

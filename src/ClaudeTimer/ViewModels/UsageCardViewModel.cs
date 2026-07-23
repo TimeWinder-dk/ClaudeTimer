@@ -27,10 +27,14 @@ public sealed partial class UsageCardViewModel : ObservableObject
 
     public DateTimeOffset? ResetsAt { get; private set; }
 
-    public UsageCardViewModel(string title, string eyebrow)
+    /// <summary>Stabil identitet der bruges til at genfinde kortet ved opdatering.</summary>
+    public string Key { get; }
+
+    public UsageCardViewModel(string title, string eyebrow, string key = "")
     {
         _title = title;
         _eyebrow = eyebrow;
+        Key = key;
     }
 
     public void Update(double utilization, DateTimeOffset? resetsAt)

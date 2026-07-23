@@ -7,7 +7,8 @@
         xmlns:behaviors="clr-namespace:ClaudeTimer.Behaviors"
         mc:Ignorable="d"
         Title="ClaudeTimer"
-        Width="760"
+        Icon="Logo/Logo.ico"
+        Width="820"
         Height="570"
         MinWidth="680"
         MinHeight="520"
@@ -36,14 +37,10 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
-                <Border Width="24" Height="24" Background="{StaticResource AccentBrush}" CornerRadius="7">
-                    <TextBlock Text="C"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Foreground="White"
-                               FontSize="13"
-                               FontWeight="Bold" />
-                </Border>
+                <Image Width="22"
+                       Height="22"
+                       Source="Logo/Logo.png"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
                 <TextBlock Margin="10,0,0,0"
                            VerticalAlignment="Center"
                            FontSize="13"
@@ -100,37 +97,33 @@
                 </StackPanel>
             </Grid>
 
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <Border Grid.Column="0"
-                        Padding="26"
-                        Background="{StaticResource SurfaceBrush}"
-                        BorderBrush="{StaticResource StrokeBrush}"
-                        BorderThickness="1"
-                        CornerRadius="14">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="22" ShadowDepth="3" Opacity="0.07" />
-                    </Border.Effect>
-                    <ContentControl Content="{Binding FiveHour}" ContentTemplate="{StaticResource UsageCardTemplate}" />
-                </Border>
-
-                <Border Grid.Column="2"
-                        Padding="26"
-                        Background="{StaticResource SurfaceBrush}"
-                        BorderBrush="{StaticResource StrokeBrush}"
-                        BorderThickness="1"
-                        CornerRadius="14">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="22" ShadowDepth="3" Opacity="0.07" />
-                    </Border.Effect>
-                    <ContentControl Content="{Binding SevenDay}" ContentTemplate="{StaticResource UsageCardTemplate}" />
-                </Border>
-            </Grid>
+            <ScrollViewer Grid.Row="2"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Cards}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="224"
+                                    Margin="0,0,14,14"
+                                    Padding="26"
+                                    Background="{StaticResource SurfaceBrush}"
+                                    BorderBrush="{StaticResource StrokeBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="14">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="22" ShadowDepth="3" Opacity="0.07" />
+                                </Border.Effect>
+                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource UsageCardTemplate}" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
             <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
