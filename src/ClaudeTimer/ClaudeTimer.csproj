@@ -7,7 +7,7 @@
     <AssemblyName>ClaudeTimer</AssemblyName>
     <RootNamespace>ClaudeTimer</RootNamespace>
     <ApplicationIcon>Logo\Logo.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>ClaudeTimer contributors</Authors>
     <Description>A small Windows dashboard for Claude usage limits.</Description>
     <PublishSingleFile Condition="'$(PublishSingleFile)' == ''">false</PublishSingleFile>
