@@ -15,6 +15,29 @@ Data hentes fra Claudes OAuth usage-endpoint. API-data opdateres hvert femte
 minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 `resets_at` forsøger appen at hente det nye vindue efter få sekunder.
 
+## Installér
+
+Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
+og vælg én af:
+
+- **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
+  `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
+  skrivebord, i Start-menuen og på proceslinjen, og kan af-installeres via
+  Tilføj/Fjern programmer.
+- **ClaudeTimer-*-win-x64.exe** — enkelt selv-indeholdt fil, kan køres direkte.
+- **ClaudeTimer-*-win-x64.zip** — samme app som mappe.
+
+Ingen af filerne er kodesignerede endnu, så Windows SmartScreen kan advare første
+gang (vælg "Flere oplysninger" → "Kør alligevel").
+
+Installeren bygges fra `installer\ClaudeTimer.iss` med
+[Inno Setup](https://jrsoftware.org/isinfo.php):
+
+```powershell
+dotnet publish .\src\ClaudeTimer\ClaudeTimer.csproj -p:PublishProfile=Folder
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" .\installer\ClaudeTimer.iss
+```
+
 ## Krav
 
 - Windows 10 1809 eller nyere (Windows 11 anbefales)
