@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/ClaudeTimer/ClaudeTimer.csproj" />
+  <Project Path="tests/ClaudeTimer.Tests/ClaudeTimer.Tests.csproj" />
+</Solution>
