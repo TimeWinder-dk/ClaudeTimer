@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace ClaudeTimer;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     private readonly IHost _host = Host.CreateDefaultBuilder()
         .ConfigureServices(services =>

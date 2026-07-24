@@ -51,6 +51,9 @@
                 <Button Style="{StaticResource IconButtonStyle}" Click="Minimize_Click" ToolTip="Minimér">
                     <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE921;" />
                 </Button>
+                <Button Style="{StaticResource IconButtonStyle}" Click="HideToTray_Click" ToolTip="Skjul til bakke">
+                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE7F4;" />
+                </Button>
                 <Button Style="{StaticResource IconButtonStyle}" Click="Close_Click" ToolTip="Luk">
                     <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE8BB;" />
                 </Button>

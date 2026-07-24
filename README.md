@@ -34,9 +34,12 @@ Installeren bygges fra `installer\ClaudeTimer.iss` med
 [Inno Setup](https://jrsoftware.org/isinfo.php):
 
 ```powershell
-dotnet publish .\src\ClaudeTimer\ClaudeTimer.csproj -p:PublishProfile=Folder
-& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" .\installer\ClaudeTimer.iss
+.\installer\build-installer.ps1
 ```
+
+Scriptet rydder automatisk gamle `ClaudeTimer-Setup-*.exe` filer, bygger en ny
+installer og genererer `SHA256SUMS.txt` samt en `.sha256`-fil ved siden af
+installeren i `artifacts\installer`.
 
 ## Krav
 

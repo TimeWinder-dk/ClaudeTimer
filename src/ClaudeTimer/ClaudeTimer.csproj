@@ -3,15 +3,17 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>ClaudeTimer</AssemblyName>
     <RootNamespace>ClaudeTimer</RootNamespace>
     <ApplicationIcon>Logo\Logo.ico</ApplicationIcon>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>ClaudeTimer contributors</Authors>
     <Description>A small Windows dashboard for Claude usage limits.</Description>
     <PublishSingleFile Condition="'$(PublishSingleFile)' == ''">false</PublishSingleFile>
     <SelfContained Condition="'$(SelfContained)' == ''">false</SelfContained>
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
