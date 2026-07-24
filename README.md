@@ -22,14 +22,16 @@ minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
 og vælg én af:
 
-- Direkte download af installer: [ClaudeTimer-Setup-1.2.0.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.0/ClaudeTimer-Setup-1.2.0.exe)
-- SHA256 (installer): [ClaudeTimer-Setup-1.2.0.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.0/ClaudeTimer-Setup-1.2.0.exe.sha256)
-- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.0/SHA256SUMS.txt)
+- Direkte download af installer: [ClaudeTimer-Setup-1.2.1.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.1/ClaudeTimer-Setup-1.2.1.exe)
+- SHA256 (installer): [ClaudeTimer-Setup-1.2.1.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.1/ClaudeTimer-Setup-1.2.1.exe.sha256)
+- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.1/SHA256SUMS.txt)
 
 - **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
   `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
   skrivebord, i Start-menuen og på proceslinjen, og kan af-installeres via
   Tilføj/Fjern programmer.
+- **ClaudeTimer-*-win-x64.msi** — per-bruger MSI (ingen administrator), ofte
+  nemmere i enterprise-miljøer med AppLocker/Intune-politikker.
 - **ClaudeTimer-*-win-x64.exe** — enkelt selv-indeholdt fil, kan køres direkte.
 - **ClaudeTimer-*-win-x64.zip** — samme app som mappe.
 
@@ -46,6 +48,19 @@ Installeren bygges fra `installer\ClaudeTimer.iss` med
 Scriptet rydder automatisk gamle `ClaudeTimer-Setup-*.exe` filer, bygger en ny
 installer og genererer `SHA256SUMS.txt` samt en `.sha256`-fil ved siden af
 installeren i `artifacts\installer`.
+
+MSI bygges med WiX via:
+
+```powershell
+.\installer\build-msi.ps1
+```
+
+MSI'en installerer per bruger til `%LOCALAPPDATA%\Programs\ClaudeTimer` og kan
+installeres uden admin med:
+
+```powershell
+msiexec /i .\artifacts\installer\ClaudeTimer-1.2.1-win-x64.msi
+```
 
 ## Krav
 

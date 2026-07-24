@@ -30,7 +30,7 @@ public partial class MainWindow : Window
             Visible = true,
             ContextMenuStrip = BuildTrayMenu()
         };
-        _notifyIcon.DoubleClick += (_, _) => ShowFromTray();
+        _notifyIcon.DoubleClick += (_, _) => ShowFromTray(refreshAfterShow: true);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -125,7 +125,7 @@ public partial class MainWindow : Window
         _hasShownTrayTip = true;
     }
 
-    private void ShowFromTray()
+    private void ShowFromTray(bool refreshAfterShow = false)
     {
         if (!IsVisible)
         {
@@ -139,6 +139,11 @@ public partial class MainWindow : Window
         }
 
         Activate();
+
+        if (refreshAfterShow && _viewModel.RefreshCommand.CanExecute(null))
+        {
+            _ = _viewModel.RefreshCommand.ExecuteAsync(null);
+        }
     }
 
     private void ExitApplication()

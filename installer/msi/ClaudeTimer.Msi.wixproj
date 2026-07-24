@@ -1,0 +1,9 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <AppVersion>1.2.1</AppVersion>
+    <OutputName>ClaudeTimer-$(AppVersion)-win-x64</OutputName>
+    <OutputPath>..\..\artifacts\installer\</OutputPath>
+    <DefineConstants>AppVersion=$(AppVersion);PublishDir=..\..\artifacts\folder</DefineConstants>
+    <SuppressIces>ICE38;ICE64;ICE91</SuppressIces>
+  </PropertyGroup>
+</Project>
