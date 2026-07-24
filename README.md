@@ -1,5 +1,7 @@
 # ClaudeTimer
 
+[![Latest release](https://img.shields.io/github/v/release/TimeWinder-dk/ClaudeTimer?display_name=tag)](https://github.com/TimeWinder-dk/ClaudeTimer/releases/latest)
+
 En lille Windows 11-inspireret WPF-app, der viser Claude Code-forbrug for alle
 aktive grænser: det aktuelle 5-timers vindue, den ugentlige grænse og eventuelle
 model-afgrænsede uger (fx Fable). Kortene bygges dynamisk ud fra API'ets
@@ -19,6 +21,10 @@ minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 
 Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
 og vælg én af:
+
+- Direkte download af installer: [ClaudeTimer-Setup-1.2.0.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.0/ClaudeTimer-Setup-1.2.0.exe)
+- SHA256 (installer): [ClaudeTimer-Setup-1.2.0.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.0/ClaudeTimer-Setup-1.2.0.exe.sha256)
+- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.0/SHA256SUMS.txt)
 
 - **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
   `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
