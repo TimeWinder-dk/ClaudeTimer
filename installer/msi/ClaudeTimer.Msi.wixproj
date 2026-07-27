@@ -4,6 +4,12 @@
     <OutputName>ClaudeTimer-$(AppVersion)-win-x64</OutputName>
     <OutputPath>..\..\artifacts\installer\</OutputPath>
     <DefineConstants>AppVersion=$(AppVersion);PublishDir=..\..\artifacts\folder</DefineConstants>
+    <EnableDefaultItems>false</EnableDefaultItems>
     <SuppressIces>ICE38;ICE64;ICE91</SuppressIces>
+    <SuppressSpecificWarnings>8602</SuppressSpecificWarnings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Product.wxs" />
+  </ItemGroup>
 </Project>
