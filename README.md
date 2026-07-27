@@ -22,9 +22,9 @@ minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
 og vælg én af:
 
-- Direkte download af installer: [ClaudeTimer-Setup-1.2.1.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.1/ClaudeTimer-Setup-1.2.1.exe)
-- SHA256 (installer): [ClaudeTimer-Setup-1.2.1.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.1/ClaudeTimer-Setup-1.2.1.exe.sha256)
-- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.1/SHA256SUMS.txt)
+- Direkte download af installer: [ClaudeTimer-Setup-1.2.2.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.2/ClaudeTimer-Setup-1.2.2.exe)
+- SHA256 (installer): [ClaudeTimer-Setup-1.2.2.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.2/ClaudeTimer-Setup-1.2.2.exe.sha256)
+- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.2/SHA256SUMS.txt)
 
 - **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
   `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
@@ -32,6 +32,8 @@ og vælg én af:
   Tilføj/Fjern programmer.
 - **ClaudeTimer-*-win-x64.msi** — per-bruger MSI (ingen administrator), ofte
   nemmere i enterprise-miljøer med AppLocker/Intune-politikker.
+- **ClaudeTimer-*-win-x64-allusers.msi** — all-users MSI (kræver elevation/admin),
+  installerer til `C:\Program Files\ClaudeTimer`.
 - **ClaudeTimer-*-win-x64.exe** — enkelt selv-indeholdt fil, kan køres direkte.
 - **ClaudeTimer-*-win-x64.zip** — samme app som mappe.
 
@@ -59,8 +61,22 @@ MSI'en installerer per bruger til `%LOCALAPPDATA%\Programs\ClaudeTimer` og kan
 installeres uden admin med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.2.1-win-x64.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.2.2-win-x64.msi
 ```
+
+All-users MSI bygges via:
+
+```powershell
+.\installer\build-msi-allusers.ps1
+```
+
+Og installeres med:
+
+```powershell
+msiexec /i .\artifacts\installer\ClaudeTimer-1.2.2-win-x64-allusers.msi
+```
+
+Bemærk: all-users MSI opretter ikke genveje i denne version.
 
 ## Krav
 
