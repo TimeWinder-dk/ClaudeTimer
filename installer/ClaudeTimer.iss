@@ -3,7 +3,7 @@
 ; The app payload is taken from artifacts\folder (produced by the Folder publish profile).
 
 #define AppName "ClaudeTimer"
-#define AppVersion "1.2.2"
+#define AppVersion "1.2.3"
 #define AppPublisher "Timewinder"
 #define AppURL "https://github.com/TimeWinder-dk/ClaudeTimer"
 #define AppExe "ClaudeTimer.exe"

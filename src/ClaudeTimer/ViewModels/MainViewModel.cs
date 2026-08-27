@@ -144,14 +144,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private async Task ForgetTokenAsync()
     {
         await _tokenStore.ClearAsync();
-        _token = null;
-        _usesClaudeCodeCredential = false;
+        _token = await _credentialReader.TryReadAccessTokenAsync();
+        _usesClaudeCodeCredential = !string.IsNullOrWhiteSpace(_token);
         HasData = false;
-        IsTokenEditorVisible = true;
-        StatusText = "Forbind din Claude-konto";
         LastUpdatedText = "Ikke opdateret endnu";
         ErrorText = null;
         RefreshCommand.NotifyCanExecuteChanged();
+
+        if (string.IsNullOrWhiteSpace(_token))
+        {
+            IsTokenEditorVisible = true;
+            StatusText = "Forbind din Claude-konto";
+            return;
+        }
+
+        IsTokenEditorVisible = false;
+        await RefreshAsync();
     }
 
     private async Task RefreshAsync()
