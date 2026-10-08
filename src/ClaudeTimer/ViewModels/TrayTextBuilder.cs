@@ -7,6 +7,7 @@ internal static class TrayTextBuilder
 {
     public const int MaxLength = 127;
     private const string AppName = "ClaudeTimer";
+    private static readonly TimeSpan SameResetTolerance = TimeSpan.FromMinutes(1);
 
     public static string Build(IReadOnlyList<AccountViewModel> accounts)
     {
@@ -57,15 +58,22 @@ internal static class TrayTextBuilder
 
     private static IEnumerable<string> CompactParts(IEnumerable<UsageCardViewModel> cards)
     {
-        // Gentag ikke en nedtælling, der er identisk med en tidligere grænses
-        // (de ugentlige grænser nulstiller typisk samtidig).
-        var shownResets = new HashSet<DateTimeOffset>();
+        // Gentag ikke en nedtælling, der svarer til en tidligere grænses. De ugentlige
+        // grænser nulstiller typisk samtidig, men API'et kan give dem tidspunkter, der
+        // ligger få sekunder fra hinanden (fx 02:59:59 og 03:00:00) – derfor en tolerance.
+        var shownResets = new List<DateTimeOffset>();
         foreach (var card in cards)
         {
             var percent = $"{card.ShortTitle} {Math.Round(card.Utilization):0}%";
-            yield return card.ResetsAt is { } resetsAt && shownResets.Add(resetsAt)
-                ? $"{percent} ({card.CompactCountdown})"
-                : percent;
+            if (card.ResetsAt is not { } resetsAt ||
+                shownResets.Any(shown => (shown - resetsAt).Duration() < SameResetTolerance))
+            {
+                yield return percent;
+                continue;
+            }
+
+            shownResets.Add(resetsAt);
+            yield return $"{percent} ({card.CompactCountdown})";
         }
     }
 

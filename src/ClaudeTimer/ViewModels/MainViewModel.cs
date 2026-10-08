@@ -66,6 +66,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private string _accountsSummaryText = string.Empty;
 
     [ObservableProperty]
+    private bool _useClaudeDesktop;
+
+    [ObservableProperty]
     private bool _startWithWindows;
 
     [ObservableProperty]
@@ -130,6 +133,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Revert(() =>
         {
             SelectedTokenSource = _settings.TokenSource;
+            UseClaudeDesktop = _settings.UseClaudeDesktop;
             StartWithWindows = _settings.StartWithWindows;
             StartHiddenInTray = _settings.StartHiddenInTray;
             RunAsAdministrator = _settings.RunAsAdministrator;
@@ -247,6 +251,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         _settings.TokenSource = value;
+        SaveSettings();
+        _ = RefreshAsync();
+    }
+
+    /// <summary>Desktop læses kun efter eget tilvalg eller når kilden er valgt eksplicit.</summary>
+    private bool IsClaudeDesktopEnabled =>
+        UseClaudeDesktop || SelectedTokenSource == TokenSource.ClaudeDesktop;
+
+    partial void OnUseClaudeDesktopChanged(bool value)
+    {
+        if (_isRevertingSetting)
+        {
+            return;
+        }
+
+        _settings.UseClaudeDesktop = value;
         SaveSettings();
         _ = RefreshAsync();
     }
@@ -386,7 +406,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private async Task DiscoverAccountsAsync()
     {
         var tokens = await ReadAllTokensAsync();
-        var sources = SelectedTokenSource == TokenSource.Automatic ? AllSources : [SelectedTokenSource];
+        var sources = SelectedTokenSource == TokenSource.Automatic
+            ? AllSources.Where(source => source != TokenSource.ClaudeDesktop || IsClaudeDesktopEnabled).ToArray()
+            : [SelectedTokenSource];
 
         var discovered = new List<(string Key, ClaudeAccount? Profile, List<AccountCredential> Credentials)>();
         foreach (var source in sources)
@@ -532,7 +554,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         var manual = Clean(await _tokenStore.LoadAsync());
         var claudeCode = Clean(await _credentialReader.TryReadAccessTokenAsync());
-        var desktop = Clean(await _desktopReader.TryReadAccessTokenAsync());
+        // Desktop-tokenet kræver dekryptering af en anden apps nøgle (DPAPI), hvilket
+        // sikkerhedsværktøjer som Defender med rette reagerer på – derfor kun efter tilvalg.
+        var desktop = IsClaudeDesktopEnabled
+            ? Clean(await _desktopReader.TryReadAccessTokenAsync())
+            : null;
 
         ManualTokenStatus = manual is not null
             ? "Manuelt token: gemt (krypteret med Windows DPAPI)."
@@ -540,11 +566,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ClaudeCodeCredentialStatus = claudeCode is not null
             ? $"Claude Code: fundet ({_credentialReader.CredentialPath})."
             : $"Claude Code: intet gyldigt login ({_credentialReader.CredentialPath}). Log ind i terminalen eller VS Code.";
-        ClaudeDesktopCredentialStatus = desktop is not null
-            ? "Claude Desktop: fundet."
-            : _desktopReader.DataDirectory is null
-                ? "Claude Desktop: appen er ikke fundet."
-                : "Claude Desktop: intet gyldigt login. Åbn appen og log ind.";
+        ClaudeDesktopCredentialStatus = _desktopReader.DataDirectory is null
+            ? "Claude Desktop: appen er ikke fundet."
+            : !IsClaudeDesktopEnabled
+                ? "Claude Desktop: slået fra."
+                : desktop is not null
+                    ? "Claude Desktop: fundet."
+                    : "Claude Desktop: intet gyldigt login. Åbn appen og log ind.";
 
         return new Dictionary<TokenSource, string?>
         {

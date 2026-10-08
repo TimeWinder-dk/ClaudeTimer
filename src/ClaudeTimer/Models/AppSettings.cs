@@ -19,6 +19,12 @@ public sealed class AppSettings
 {
     public TokenSource TokenSource { get; set; } = TokenSource.Automatic;
 
+    /// <summary>
+    /// Læs Claude Desktops login ved Automatisk. Fra som standard, da det kræver
+    /// DPAPI-dekryptering af en anden apps nøgle, som sikkerhedsværktøjer markerer.
+    /// </summary>
+    public bool UseClaudeDesktop { get; set; }
+
     public bool StartWithWindows { get; set; }
 
     public bool StartHiddenInTray { get; set; } = true;

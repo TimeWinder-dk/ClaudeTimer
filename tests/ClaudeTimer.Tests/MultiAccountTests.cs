@@ -95,6 +95,21 @@ public sealed class MultiAccountTests
     }
 
     [Fact]
+    public void TrayText_DoesNotRepeatCountdown_WhenResetsDifferBySeconds()
+    {
+        var account = AccountWithCards(
+            "thha",
+            ("5 timer", "5t", 9, TimeSpan.FromMinutes(238)),
+            ("7 døgn", "Uge", 2, TimeSpan.FromHours(162) - TimeSpan.FromSeconds(1)),
+            ("Fable · 7 døgn", "Fable", 1, TimeSpan.FromHours(162)));
+        var other = AccountWithCards("tha", ("5 timer", "5t", 1, TimeSpan.FromMinutes(278)));
+
+        Assert.Equal(
+            "thha: 5t 9% (3t58m) · Uge 2% (6d17t) · Fable 1%\ntha: 5t 1% (4t38m)",
+            TrayTextBuilder.Build([account, other]));
+    }
+
+    [Fact]
     public void TrayText_SingleAccount_OmitsCountdownWithoutReset()
     {
         var account = AccountWithCards("thha", ("5 timer", "5t", 0, null));

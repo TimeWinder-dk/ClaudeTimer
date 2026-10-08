@@ -247,6 +247,12 @@
                             <TextBlock Margin="26,-4,0,10"
                                        Style="{StaticResource SettingsHintStyle}"
                                        Text="Samme konto slås sammen. Forskellige konti vises i hver sin fane." />
+                            <CheckBox Margin="26,0,0,4"
+                                      Content="Medtag Claude Desktop-appens login"
+                                      IsChecked="{Binding UseClaudeDesktop}" />
+                            <TextBlock Margin="52,0,0,12"
+                                       Style="{StaticResource SettingsHintStyle}"
+                                       Text="Appens login er krypteret og skal dekrypteres med Windows DPAPI. Sikkerhedsværktøjer som Microsoft Defender kan derfor melde 'Suspicious DPAPI Activity'. Brug Claude Code, hvis du er på en firma-pc." />
                             <RadioButton GroupName="TokenSource"
                                          Content="Kun Claude Code (CLI og VS Code-udvidelsen)"
                                          IsChecked="{Binding SelectedTokenSource, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=ClaudeCode}" />
