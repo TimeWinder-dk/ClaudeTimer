@@ -22,9 +22,9 @@ minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
 og vælg én af:
 
-- Direkte download af installer: [ClaudeTimer-Setup-1.5.0.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.0/ClaudeTimer-Setup-1.5.0.exe)
-- SHA256 (installer): [ClaudeTimer-Setup-1.5.0.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.0/ClaudeTimer-Setup-1.5.0.exe.sha256)
-- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.0/SHA256SUMS.txt)
+- Direkte download af installer: [ClaudeTimer-Setup-1.5.1.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.1/ClaudeTimer-Setup-1.5.1.exe)
+- SHA256 (installer): [ClaudeTimer-Setup-1.5.1.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.1/ClaudeTimer-Setup-1.5.1.exe.sha256)
+- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.1/SHA256SUMS.txt)
 
 - **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
   `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
@@ -43,7 +43,7 @@ offline — fx ved at kopiere filen til en maskine uden internet.
 Kontrollér en download mod checksummen:
 
 ```powershell
-(Get-FileHash .\ClaudeTimer-Setup-1.5.0.exe -Algorithm SHA256).Hash
+(Get-FileHash .\ClaudeTimer-Setup-1.5.1.exe -Algorithm SHA256).Hash
 # sammenlign med linjen i SHA256SUMS.txt
 ```
 
@@ -79,7 +79,7 @@ MSI'en installerer per bruger til `%LOCALAPPDATA%\Programs\ClaudeTimer` og kan
 installeres uden admin med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.5.0-win-x64.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.5.1-win-x64.msi
 ```
 
 All-users MSI bygges via:
@@ -91,7 +91,7 @@ All-users MSI bygges via:
 Og installeres med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.5.0-win-x64-allusers.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.5.1-win-x64-allusers.msi
 ```
 
 Bemærk: all-users MSI opretter ikke genveje i denne version.
@@ -164,7 +164,7 @@ tooltip og notifikationer. E-mail og organisation vises stadig som undertitel.
 **Udseende**
 
 - *Tema* — følg Windows (skifter med det samme, når Windows skifter), lys eller mørk.
-- *Forbrug i bakke-ikonet* — ikonet tegner den mest pressede grænse som en ring
+- *Forbrug i bakke-ikonet* — ikonet tegner den mest pressede grænse som en ring på lys baggrund (ens på lys og mørk proceslinje)
   med procenttal: grøn under 50 %, gul under 80 %, rød derover. Kortenes procent
   og bjælke farves efter samme niveauer.
 - Hvert kort viser en *prognose* ud fra tempoet i vinduet: "Prognose ved

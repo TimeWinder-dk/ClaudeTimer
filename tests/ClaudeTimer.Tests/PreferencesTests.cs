@@ -96,8 +96,15 @@ public sealed class PreferencesTests
     [InlineData(100)]
     public void TrayIcon_RendersAllLevels(int percent)
     {
-        using var icon = TrayIconRenderer.Render(percent, lightTaskbar: false);
+        using var icon = TrayIconRenderer.Render(percent);
         Assert.Equal(32, icon.Width);
+
+        // Forhåndsvisning til manuelt eftersyn (sættes kun lokalt).
+        if (Environment.GetEnvironmentVariable("CLAUDETIMER_ICON_PREVIEW") is { Length: > 0 } directory)
+        {
+            using var bitmap = icon.ToBitmap();
+            bitmap.Save(System.IO.Path.Combine(directory, $"icon-{percent}.png"));
+        }
     }
 
     [Theory]

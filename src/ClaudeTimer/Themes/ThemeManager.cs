@@ -55,9 +55,6 @@ public static class ThemeManager
         }
     }
 
-    /// <summary>Om proceslinjen er lys – afgør tekstfarven i bakke-ikonet.</summary>
-    public static bool IsTaskbarLight => ReadBool("SystemUsesLightTheme", false);
-
     private static bool ReadBool(string name, bool fallback)
     {
         using var key = Registry.CurrentUser.OpenSubKey(PersonalizeKey);

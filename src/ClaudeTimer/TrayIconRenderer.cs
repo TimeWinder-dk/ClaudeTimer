@@ -6,18 +6,31 @@ using ClaudeTimer.ViewModels;
 
 namespace ClaudeTimer;
 
-/// <summary>Tegner bakke-ikonet som en forbrugsring med procenttal i midten.</summary>
+/// <summary>
+/// Tegner bakke-ikonet som en forbrugsring med procenttal på en lys, rund
+/// baggrund. Baggrunden giver samme kontrast på lys og mørk proceslinje.
+/// </summary>
 internal static class TrayIconRenderer
 {
     private const int Size = 32;
 
-    private static readonly Color Good = Color.FromArgb(0x2E, 0xA0, 0x5A);
-    private static readonly Color Warning = Color.FromArgb(0xE8, 0xA3, 0x17);
-    private static readonly Color Critical = Color.FromArgb(0xE5, 0x48, 0x2E);
+    private static readonly Color Background = Color.FromArgb(0xF7, 0xF7, 0xF9);
+    private static readonly Color Track = Color.FromArgb(0xDC, 0xDB, 0xE2);
+    private static readonly Color Text = Color.FromArgb(0x19, 0x19, 0x1B);
+    private static readonly Color Good = Color.FromArgb(0x1A, 0x9A, 0x4B);
+    private static readonly Color Warning = Color.FromArgb(0xE0, 0x96, 0x00);
+    private static readonly Color Critical = Color.FromArgb(0xD9, 0x3A, 0x1E);
 
-    public static Icon Render(int percent, bool lightTaskbar)
+    public static Icon Render(int percent)
     {
         percent = Math.Clamp(percent, 0, 100);
+        var level = UsageLevels.For(percent) switch
+        {
+            UsageLevel.Critical => Critical,
+            UsageLevel.Warning => Warning,
+            _ => Good
+        };
+
         using var bitmap = new Bitmap(Size, Size);
         using (var graphics = Graphics.FromImage(bitmap))
         {
@@ -25,33 +38,29 @@ internal static class TrayIconRenderer
             graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
             graphics.Clear(Color.Transparent);
 
-            var ring = new RectangleF(2.5f, 2.5f, Size - 5, Size - 5);
-            var foreground = lightTaskbar ? Color.FromArgb(0x1A, 0x1A, 0x1A) : Color.White;
+            using (var background = new SolidBrush(Background))
+            {
+                graphics.FillEllipse(background, 0, 0, Size - 1, Size - 1);
+            }
 
-            using (var track = new Pen(Color.FromArgb(lightTaskbar ? 50 : 70, foreground), 4f))
+            var ring = new RectangleF(3f, 3f, Size - 7, Size - 7);
+            using (var track = new Pen(Track, 4f))
             {
                 graphics.DrawEllipse(track, ring);
             }
 
-            var color = UsageLevels.For(percent) switch
-            {
-                UsageLevel.Critical => Critical,
-                UsageLevel.Warning => Warning,
-                _ => Good
-            };
-
             if (percent > 0)
             {
-                using var arc = new Pen(color, 4f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                using var arc = new Pen(level, 4f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
                 graphics.DrawArc(arc, ring, -90, Math.Max(8, percent * 3.6f));
             }
 
             var text = percent >= 100 ? "!" : percent.ToString();
-            var fontSize = text.Length >= 2 ? 12.5f : 15f;
+            var fontSize = text.Length >= 2 ? 12f : 14f;
             using var font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
-            using var brush = new SolidBrush(percent >= 100 ? Critical : foreground);
+            using var brush = new SolidBrush(percent >= 100 ? Critical : Text);
             using var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            graphics.DrawString(text, font, brush, new RectangleF(0, 0.5f, Size, Size), format);
+            graphics.DrawString(text, font, brush, new RectangleF(0, 0.5f, Size - 1, Size - 1), format);
         }
 
         // Icon.FromHandle ejer ikke håndtaget; klon ikonet og frigiv det straks.

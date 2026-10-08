@@ -68,7 +68,7 @@ public partial class MainWindow : Window
     {
         var previous = _currentTrayIcon;
         _currentTrayIcon = _viewModel.TrayIconPercent is { } percent
-            ? TrayIconRenderer.Render(percent, ThemeManager.IsTaskbarLight)
+            ? TrayIconRenderer.Render(percent)
             : null;
         _notifyIcon.Icon = _currentTrayIcon ?? _logoIcon;
         previous?.Dispose();

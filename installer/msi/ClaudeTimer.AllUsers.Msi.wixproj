@@ -1,6 +1,6 @@
 <Project Sdk="WixToolset.Sdk/5.0.2">
   <PropertyGroup>
-    <AppVersion>1.5.0</AppVersion>
+    <AppVersion>1.5.1</AppVersion>
     <OutputName>ClaudeTimer-$(AppVersion)-win-x64-allusers</OutputName>
     <OutputPath>..\..\artifacts\installer\</OutputPath>
     <DefineConstants>AppVersion=$(AppVersion);PublishDir=..\..\artifacts\folder</DefineConstants>
