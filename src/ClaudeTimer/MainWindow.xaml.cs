@@ -1,4 +1,3 @@
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
@@ -6,7 +5,6 @@ using ClaudeTimer.ViewModels;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 using System.IO;
-using System.Text;
 
 namespace ClaudeTimer;
 
@@ -35,65 +33,16 @@ public partial class MainWindow : Window
         };
         _notifyIcon.DoubleClick += (_, _) => ShowFromTray(refreshAfterShow: true);
 
-        _viewModel.Cards.CollectionChanged += OnCardsChanged;
-        foreach (var card in _viewModel.Cards)
-        {
-            card.PropertyChanged += OnCardPropertyChanged;
-        }
+        _viewModel.ExitRequested += (_, _) => ExitApplication();
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
-    private void OnCardsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.OldItems is not null)
+        if (e.PropertyName == nameof(MainViewModel.TrayText) && _notifyIcon.Text != _viewModel.TrayText)
         {
-            foreach (UsageCardViewModel card in e.OldItems)
-            {
-                card.PropertyChanged -= OnCardPropertyChanged;
-            }
+            _notifyIcon.Text = _viewModel.TrayText;
         }
-
-        if (e.NewItems is not null)
-        {
-            foreach (UsageCardViewModel card in e.NewItems)
-            {
-                card.PropertyChanged += OnCardPropertyChanged;
-            }
-        }
-
-        UpdateTrayTooltip();
-    }
-
-    private void OnCardPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is nameof(UsageCardViewModel.Percentage) or nameof(UsageCardViewModel.Countdown))
-        {
-            UpdateTrayTooltip();
-        }
-    }
-
-    private void UpdateTrayTooltip()
-    {
-        var cards = _viewModel.Cards;
-        if (cards.Count == 0)
-        {
-            _notifyIcon.Text = "ClaudeTimer";
-            return;
-        }
-
-        var sb = new StringBuilder();
-        foreach (var card in cards)
-        {
-            if (sb.Length > 0) sb.Append('\n');
-            sb.Append(card.Title);
-            sb.Append(" · ");
-            sb.Append(card.Percentage);
-            sb.Append(" · ");
-            sb.Append(card.Countdown);
-        }
-
-        // NotifyIcon.Text must be <= 127 characters
-        var text = sb.ToString();
-        _notifyIcon.Text = text.Length > 127 ? text[..127] : text;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)

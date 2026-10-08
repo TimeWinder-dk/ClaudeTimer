@@ -14,7 +14,35 @@ public sealed class ClaudeUsageClient(HttpClient httpClient) : IClaudeUsageClien
         string oauthToken,
         CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "api/oauth/usage");
+        var result = await GetJsonAsync<UsageApiResponse>("api/oauth/usage", oauthToken, cancellationToken);
+        return new ClaudeUsage(BuildWindows(result));
+    }
+
+    public async Task<ClaudeAccount> GetProfileAsync(
+        string oauthToken,
+        CancellationToken cancellationToken)
+    {
+        var result = await GetJsonAsync<ProfileApiResponse>("api/oauth/profile", oauthToken, cancellationToken);
+        if (result.Account?.Uuid is not { Length: > 0 } accountId)
+        {
+            throw new ClaudeUsageException("Claude returnerede en profil uden konto.");
+        }
+
+        return new ClaudeAccount(
+            accountId,
+            result.Account.Email,
+            result.Account.DisplayName ?? result.Account.FullName,
+            result.Organization?.Uuid,
+            result.Organization?.Name);
+    }
+
+    private async Task<T> GetJsonAsync<T>(
+        string path,
+        string oauthToken,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", oauthToken);
         request.Headers.TryAddWithoutValidation("anthropic-beta", "oauth-2025-04-20");
 
@@ -47,17 +75,12 @@ public sealed class ClaudeUsageClient(HttpClient httpClient) : IClaudeUsageClien
             try
             {
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                var result = await JsonSerializer.DeserializeAsync<UsageApiResponse>(
+                var result = await JsonSerializer.DeserializeAsync<T>(
                     stream,
                     JsonOptions,
                     cancellationToken);
 
-                if (result is null)
-                {
-                    throw new ClaudeUsageException("Claude returnerede et tomt svar.");
-                }
-
-                return new ClaudeUsage(BuildWindows(result));
+                return result ?? throw new ClaudeUsageException("Claude returnerede et tomt svar.");
             }
             catch (JsonException exception)
             {

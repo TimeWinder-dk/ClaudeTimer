@@ -3,7 +3,7 @@
 ; The app payload is taken from artifacts\folder (produced by the Folder publish profile).
 
 #define AppName "ClaudeTimer"
-#define AppVersion "1.2.2"
+#define AppVersion "1.3.0"
 #define AppPublisher "Timewinder"
 #define AppURL "https://github.com/TimeWinder-dk/ClaudeTimer"
 #define AppExe "ClaudeTimer.exe"
@@ -57,3 +57,14 @@ Filename: "powershell.exe"; \
   Tasks: pintaskbar; Flags: runhidden
 ; Offer to launch the app when the wizard finishes.
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+; Fjern automatisk start, hvis den er slået til i appens indstillinger.
+Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Run"" /v ClaudeTimer /f"; \
+  Flags: runhidden; RunOnceId: "RemoveRunKey"
+; Den planlagte admin-opgave kræver elevation at slette; best effort.
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ClaudeTimer /F"; \
+  Flags: runhidden; RunOnceId: "RemoveStartupTask"
+
+[UninstallDelete]
+Type: files; Name: "{localappdata}\ClaudeTimer\settings.json"

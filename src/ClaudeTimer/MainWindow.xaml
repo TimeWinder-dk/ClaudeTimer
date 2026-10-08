@@ -63,7 +63,7 @@
         <Grid Grid.Row="1" Margin="32,20,32,28">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="22" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="18" />
                 <RowDefinition Height="Auto" />
@@ -80,15 +80,25 @@
                                Text="Dit Claude-forbrug" />
                     <TextBlock Margin="1,7,0,0"
                                FontSize="14"
-                               Foreground="{StaticResource MutedTextBrush}"
-                               Text="{Binding StatusText}" />
+                               Foreground="{StaticResource MutedTextBrush}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Text" Value="{Binding StatusText}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasAccounts}" Value="True">
+                                        <Setter Property="Text" Value="{Binding SelectedAccount.StatusText}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding ShowTokenEditorCommand}"
+                    <Button Command="{Binding OpenSettingsCommand}"
                             Style="{StaticResource IconButtonStyle}"
-                            ToolTip="Skift OAuth-token"
+                            ToolTip="Indstillinger"
                             shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16" Text="&#xE72E;" />
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16" Text="&#xE713;" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Command="{Binding RefreshCommand}"
@@ -100,10 +110,31 @@
                 </StackPanel>
             </Grid>
 
+            <!-- Faner: kun når Claude Code og Claude Desktop er logget ind på forskellige konti -->
+            <ListBox Grid.Row="1"
+                     Margin="0,18,0,0"
+                     ItemsSource="{Binding Accounts}"
+                     SelectedItem="{Binding SelectedAccount, Mode=TwoWay}"
+                     Style="{StaticResource AccountTabsStyle}"
+                     Visibility="{Binding ShowTabs, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                            <TextBlock Margin="0,2,0,0"
+                                       FontSize="11"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="{Binding Subtitle}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
             <ScrollViewer Grid.Row="2"
+                          Margin="0,22,0,0"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl ItemsSource="{Binding Cards}">
+                <ItemsControl ItemsSource="{Binding SelectedAccount.Cards}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel Orientation="Horizontal" />
@@ -135,12 +166,12 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock FontSize="12"
                            Foreground="{StaticResource ErrorBrush}"
-                           Text="{Binding ErrorText}"
+                           Text="{Binding SelectedAccount.ErrorText}"
                            TextTrimming="CharacterEllipsis" />
                 <TextBlock Grid.Column="1"
                            FontSize="12"
                            Foreground="{StaticResource MutedTextBrush}"
-                           Text="{Binding LastUpdatedText}" />
+                           Text="{Binding SelectedAccount.LastUpdatedText, FallbackValue='Ikke opdateret endnu', TargetNullValue='Ikke opdateret endnu'}" />
             </Grid>
         </Grid>
 
@@ -152,70 +183,166 @@
                 <Style TargetType="Border">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsTokenEditorVisible}" Value="True">
+                        <DataTrigger Binding="{Binding IsSettingsVisible}" Value="True">
                             <Setter Property="Visibility" Value="Visible" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <Border Width="480"
-                    Padding="28"
+            <Border Width="540"
+                    Margin="0,24"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Background="{StaticResource SurfaceBrush}"
                     CornerRadius="16">
-                <StackPanel>
-                    <Border Width="44"
-                            Height="44"
-                            HorizontalAlignment="Left"
-                            Background="{StaticResource AccentSoftBrush}"
-                            CornerRadius="12">
-                        <TextBlock HorizontalAlignment="Center"
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="28,24,20,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="40"
+                                Height="40"
+                                Background="{StaticResource AccentSoftBrush}"
+                                CornerRadius="12">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Segoe Fluent Icons"
+                                       FontSize="18"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       Text="&#xE713;" />
+                        </Border>
+                        <TextBlock Grid.Column="1"
+                                   Margin="14,0,0,0"
                                    VerticalAlignment="Center"
-                                   FontFamily="Segoe Fluent Icons"
-                                   FontSize="20"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Text="&#xE72E;" />
-                    </Border>
-                    <TextBlock Margin="0,18,0,0"
-                               FontSize="22"
-                               FontWeight="SemiBold"
-                               Text="Forbind Claude" />
-                    <TextBlock Margin="0,8,0,0"
-                               Foreground="{StaticResource MutedTextBrush}"
-                               LineHeight="20"
-                               TextWrapping="Wrap"
-                               Text="Indsæt dit Claude Code OAuth-token. Det krypteres med Windows og kan kun læses af din bruger." />
-                    <TextBlock Margin="0,20,0,7"
-                               FontSize="12"
-                               FontWeight="SemiBold"
-                               Text="OAUTH-TOKEN" />
-                    <PasswordBox behaviors:PasswordBoxBinding.IsEnabled="True"
-                                 behaviors:PasswordBoxBinding.BoundPassword="{Binding TokenInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 PasswordChar="●" />
-                    <TextBlock Margin="0,8,0,0"
-                               FontSize="12"
-                               Foreground="{StaticResource ErrorBrush}"
-                               Text="{Binding ErrorText}" />
-                    <StackPanel Margin="0,22,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
-                        <Button Margin="0,0,8,0"
-                                Command="{Binding CancelTokenEditorCommand}"
-                                Content="Annullér"
-                                Style="{StaticResource SecondaryButtonStyle}" />
-                        <Button Command="{Binding SaveTokenCommand}"
-                                Content="Forbind"
+                                   FontSize="22"
+                                   FontWeight="SemiBold"
+                                   Text="Indstillinger" />
+                        <Button Grid.Column="2"
+                                Command="{Binding CloseSettingsCommand}"
+                                Style="{StaticResource IconButtonStyle}"
+                                ToolTip="Luk">
+                            <TextBlock FontFamily="Segoe Fluent Icons" FontSize="12" Text="&#xE8BB;" />
+                        </Button>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1"
+                                  Margin="0,8,0,0"
+                                  Padding="28,0"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <!-- Token -->
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Margin="0,8,0,10" Text="TOKEN-KILDE" />
+                            <RadioButton GroupName="TokenSource"
+                                         Content="Automatisk – alle fundne logins"
+                                         IsChecked="{Binding SelectedTokenSource, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Automatic}" />
+                            <TextBlock Margin="26,-4,0,10"
+                                       Style="{StaticResource SettingsHintStyle}"
+                                       Text="Samme konto slås sammen. Forskellige konti vises i hver sin fane." />
+                            <RadioButton GroupName="TokenSource"
+                                         Content="Kun Claude Code (CLI og VS Code-udvidelsen)"
+                                         IsChecked="{Binding SelectedTokenSource, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=ClaudeCode}" />
+                            <RadioButton GroupName="TokenSource"
+                                         Content="Kun Claude Desktop-appen"
+                                         IsChecked="{Binding SelectedTokenSource, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=ClaudeDesktop}" />
+                            <RadioButton GroupName="TokenSource"
+                                         Content="Kun manuelt indsat token"
+                                         IsChecked="{Binding SelectedTokenSource, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Manual}" />
+                            <TextBlock Margin="26,2,0,0" Style="{StaticResource SettingsHintStyle}" Text="{Binding ClaudeCodeCredentialStatus}" />
+                            <TextBlock Margin="26,2,0,0" Style="{StaticResource SettingsHintStyle}" Text="{Binding ClaudeDesktopCredentialStatus}" />
+                            <TextBlock Margin="26,2,0,0" Style="{StaticResource SettingsHintStyle}" Text="{Binding ManualTokenStatus}" />
+                            <TextBlock Margin="26,6,0,0"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding AccountsSummaryText}" />
+
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Margin="0,18,0,7" Text="MANUELT OAUTH-TOKEN" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <PasswordBox behaviors:PasswordBoxBinding.IsEnabled="True"
+                                             behaviors:PasswordBoxBinding.BoundPassword="{Binding TokenInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             PasswordChar="●" />
+                                <Button Grid.Column="1"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding SaveTokenCommand}"
+                                        Content="Gem"
+                                        Style="{StaticResource PrimaryButtonStyle}" />
+                            </Grid>
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{StaticResource SettingsHintStyle}"
+                                       Text="Krypteres med Windows og kan kun læses af din bruger." />
+                            <Button Margin="0,8,0,0"
+                                    HorizontalAlignment="Left"
+                                    Padding="0"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Command="{Binding ForgetTokenCommand}"
+                                    Foreground="{StaticResource MutedTextBrush}"
+                                    Content="Glem gemt token"
+                                    Cursor="Hand" />
+
+                            <!-- Opstart -->
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="OPSTART" />
+                            <CheckBox Content="Start ClaudeTimer når Windows starter"
+                                      IsChecked="{Binding StartWithWindows}" />
+                            <CheckBox Margin="26,0,0,10"
+                                      Content="Start skjult i systembakken"
+                                      IsChecked="{Binding StartHiddenInTray}"
+                                      IsEnabled="{Binding StartWithWindows}" />
+
+                            <!-- Administrator -->
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="ADMINISTRATOR" />
+                            <CheckBox Content="Kør altid som administrator (også ved opstart)"
+                                      IsChecked="{Binding RunAsAdministrator}" />
+                            <TextBlock Margin="26,0,0,0"
+                                       Style="{StaticResource SettingsHintStyle}"
+                                       Text="Windows beder om godkendelse (UAC). Ved automatisk start bruges en planlagt opgave med højeste rettigheder, så der ikke spørges ved hvert logon." />
+                            <TextBlock Margin="26,6,0,0"
+                                       Style="{StaticResource SettingsHintStyle}"
+                                       Text="{Binding ElevationStatusText}" />
+                            <Button Margin="26,10,0,0"
+                                    HorizontalAlignment="Left"
+                                    Command="{Binding RestartElevatedCommand}"
+                                    Content="Genstart som administrator"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Visibility="{Binding CanRestartElevated, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Grid Grid.Row="2" Margin="28,16,28,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontSize="12"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       Text="{Binding SettingsMessage}"
+                                       TextWrapping="Wrap" />
+                            <TextBlock FontSize="12"
+                                       Foreground="{StaticResource ErrorBrush}"
+                                       Text="{Binding SelectedAccount.ErrorText}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Margin="12,0,0,0"
+                                Command="{Binding CloseSettingsCommand}"
+                                Content="Færdig"
                                 Style="{StaticResource PrimaryButtonStyle}" />
-                    </StackPanel>
-                    <Button Margin="0,18,0,0"
-                            HorizontalAlignment="Left"
-                            Padding="0"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Command="{Binding ForgetTokenCommand}"
-                            Foreground="{StaticResource MutedTextBrush}"
-                            Content="Glem gemt token"
-                            Cursor="Hand" />
-                </StackPanel>
+                    </Grid>
+                </Grid>
             </Border>
         </Border>
     </Grid>

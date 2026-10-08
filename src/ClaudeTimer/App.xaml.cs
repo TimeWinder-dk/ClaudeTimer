@@ -14,7 +14,10 @@ public partial class App : System.Windows.Application
         {
             services.AddSingleton<IClock, SystemClock>();
             services.AddSingleton<ITokenStore, DpapiTokenStore>();
+            services.AddSingleton<ISettingsStore, JsonSettingsStore>();
+            services.AddSingleton<IStartupManager, WindowsStartupManager>();
             services.AddSingleton<IClaudeCodeCredentialReader, ClaudeCodeCredentialReader>();
+            services.AddSingleton<IClaudeDesktopCredentialReader, ClaudeDesktopCredentialReader>();
             services.AddHttpClient<IClaudeUsageClient, ClaudeUsageClient>(client =>
             {
                 client.BaseAddress = new Uri("https://api.anthropic.com/");
@@ -35,8 +38,33 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        var settings = _host.Services.GetRequiredService<ISettingsStore>().Load();
+        var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+        if (settings.RunAsAdministrator &&
+            !startupManager.IsElevated &&
+            startupManager.TryRelaunchElevated(e.Args))
+        {
+            // Den elevated instans overtager. Afviser brugeren UAC, kører vi videre normalt.
+            Shutdown();
+            return;
+        }
+
         await _host.StartAsync();
-        _host.Services.GetRequiredService<MainWindow>().Show();
+        var window = _host.Services.GetRequiredService<MainWindow>();
+        var viewModel = _host.Services.GetRequiredService<MainViewModel>();
+        var isAutostart = e.Args.Contains(WindowsStartupManager.AutostartArgument, StringComparer.OrdinalIgnoreCase);
+
+        if (isAutostart && viewModel.StartHiddenOnAutostart)
+        {
+            await viewModel.InitializeAsync();
+            if (!viewModel.NeedsToken)
+            {
+                return;
+            }
+        }
+
+        window.Show();
     }
 
     protected override async void OnExit(ExitEventArgs e)
