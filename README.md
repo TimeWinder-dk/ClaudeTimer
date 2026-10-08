@@ -22,9 +22,9 @@ minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
 og vælg én af:
 
-- Direkte download af installer: [ClaudeTimer-Setup-1.2.2.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.2/ClaudeTimer-Setup-1.2.2.exe)
-- SHA256 (installer): [ClaudeTimer-Setup-1.2.2.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.2/ClaudeTimer-Setup-1.2.2.exe.sha256)
-- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.2.2/SHA256SUMS.txt)
+- Direkte download af installer: [ClaudeTimer-Setup-1.4.0.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.4.0/ClaudeTimer-Setup-1.4.0.exe)
+- SHA256 (installer): [ClaudeTimer-Setup-1.4.0.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.4.0/ClaudeTimer-Setup-1.4.0.exe.sha256)
+- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.4.0/SHA256SUMS.txt)
 
 - **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
   `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
@@ -37,8 +37,26 @@ og vælg én af:
 - **ClaudeTimer-*-win-x64.exe** — enkelt selv-indeholdt fil, kan køres direkte.
 - **ClaudeTimer-*-win-x64.zip** — samme app som mappe.
 
+Alle varianter er selv-indeholdte (.NET er pakket med), så de kan installeres
+offline — fx ved at kopiere filen til en maskine uden internet.
+
+Kontrollér en download mod checksummen:
+
+```powershell
+(Get-FileHash .\ClaudeTimer-Setup-1.4.0.exe -Algorithm SHA256).Hash
+# sammenlign med linjen i SHA256SUMS.txt
+```
+
 Ingen af filerne er kodesignerede endnu, så Windows SmartScreen kan advare første
 gang (vælg "Flere oplysninger" → "Kør alligevel").
+
+Alle release-filer inkl. `.sha256`-filer og en samlet `SHA256SUMS.txt` bygges med:
+
+```powershell
+.\installer\build-release.ps1
+```
+
+Resultatet lægges i `artifacts\release-v<version>`.
 
 Installeren bygges fra `installer\ClaudeTimer.iss` med
 [Inno Setup](https://jrsoftware.org/isinfo.php):
@@ -61,7 +79,7 @@ MSI'en installerer per bruger til `%LOCALAPPDATA%\Programs\ClaudeTimer` og kan
 installeres uden admin med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.2.2-win-x64.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.4.0-win-x64.msi
 ```
 
 All-users MSI bygges via:
@@ -73,16 +91,31 @@ All-users MSI bygges via:
 Og installeres med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.2.2-win-x64-allusers.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.4.0-win-x64-allusers.msi
 ```
 
 Bemærk: all-users MSI opretter ikke genveje i denne version.
+
+## Automatiske opdateringer
+
+ClaudeTimer spørger GitHub efter den seneste release ved opstart og derefter
+hver 6. time. Findes der en nyere version, hentes pakken, der passer til
+installationstypen (Setup-exe, per-bruger MSI, all-users MSI eller enkelt-fil
+exe), og dens SHA256 kontrolleres mod release'ens `SHA256SUMS.txt`. Derefter
+lukker appen, installerer stille og starter igen i systembakken. All-users MSI
+beder om administrator-godkendelse. Zip-udgaven kan ikke opdatere sig selv,
+men giver besked og et link til GitHub.
+
+Begge dele kan slås fra under *Opdateringer* i indstillingerne, hvor man også kan
+søge manuelt.
+
+Der kører kun én ClaudeTimer ad gangen; åbnes den igen, vises det kørende vindue.
 
 ## Krav
 
 - Windows 10 1809 eller nyere (Windows 11 anbefales)
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) til udvikling
-- Claude Code logget ind med OAuth, eller et Claude Code OAuth access token
+- Claude Code eller Claude Desktop logget ind, eller et Claude OAuth access token
 
 ## Kør lokalt
 
@@ -91,10 +124,50 @@ dotnet restore
 dotnet run --project .\src\ClaudeTimer\ClaudeTimer.csproj
 ```
 
-ClaudeTimer prøver først et manuelt gemt token og derefter Claude Codes
-standardfil `%USERPROFILE%\.claude\.credentials.json`. Et manuelt token
-krypteres med Windows DPAPI (`CurrentUser`) og gemmes under
-`%LOCALAPPDATA%\ClaudeTimer\token.dat`. Tokenet logges aldrig.
+## Indstillinger
+
+Tandhjulet øverst til højre åbner de samlede indstillinger, som gemmes i
+`%LOCALAPPDATA%\ClaudeTimer\settings.json`.
+
+**Token-kilde**
+
+- *Automatisk* (standard) — bruger alle fundne logins. Hvert token slås op på
+  Claudes profil-endpoint; tokens for samme konto og organisation slås sammen,
+  mens forskellige konti vises i hver sin fane. Fanerne skjules, når der kun er én.
+- *Claude Code* — læser `%USERPROFILE%\.claude\.credentials.json` (eller
+  `%CLAUDE_CONFIG_DIR%\.credentials.json`). Filen deles af Claude Code CLI og
+  VS Code-udvidelsen, så ét login i en af dem dækker begge. Udløbne tokens
+  springes over.
+- *Claude Desktop* — læser Claude Desktop-appens token-cache (`config.json` i
+  `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude` for
+  Store/MSIX-installationen, ellers `%APPDATA%\Claude`). Cachen er krypteret med
+  Electrons safeStorage (AES-GCM med en DPAPI-beskyttet nøgle) og kan kun læses
+  af din egen Windows-bruger. Kun et gyldigt token med `user:profile`-scope bruges.
+- *Kun manuelt* — kun det indsatte token. Det krypteres med Windows DPAPI
+  (`CurrentUser`) og gemmes under `%LOCALAPPDATA%\ClaudeTimer\token.dat`.
+
+Tokens læses igen ved hver opdatering (hvert 5. minut), så fornyelser og
+konto-skift i Claude Code/Desktop slår igennem. Tokens logges aldrig.
+
+Bakke-ikonets tooltip viser ved én konto en linje pr. grænse
+(`5 timer · 42 % · 01:12:33`) og ved flere konti én kompakt linje pr. konto
+(`thha: 5t 42% 1t12m · 7d 18% 3d4t`), inden for Windows' grænse på 127 tegn.
+
+**Opstart**
+
+- *Start når Windows starter* — registreres under
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` med `--autostart`.
+- *Start skjult i systembakken* — ved autostart vises kun bakke-ikonet
+  (vinduet vises alligevel, hvis der mangler et token).
+
+**Administrator**
+
+- *Kør altid som administrator* — appen genstarter sig selv via UAC ved opstart.
+  Afvises prompten, kører den videre uden rettigheder.
+- Kombineret med autostart oprettes i stedet en planlagt opgave (`ClaudeTimer`)
+  med "højeste rettigheder", fordi Windows ikke starter elevated apps fra
+  Run-nøglen. Opgaven udløses kun ved din egen logon og spørger ikke om UAC.
+  Oprettelse og sletning af opgaven kræver én UAC-godkendelse.
 
 ## Test
 

@@ -27,6 +27,17 @@ internal static class UsageWindowLabels
         _ => Humanize(window.Kind)
     };
 
+    /// <summary>Kort navn til bakke-tooltip'en, hvor der kun er 127 tegn.</summary>
+    public static string ShortTitle(UsageWindow window) => window.Kind switch
+    {
+        "session" => "5t",
+        "weekly_all" => "Uge",
+        "weekly_scoped" => window.ScopeModelName is { Length: > 0 } model
+            ? model
+            : "Uge*",
+        _ => Humanize(window.Kind)
+    };
+
     private static string Humanize(string kind) =>
         string.IsNullOrWhiteSpace(kind)
             ? "Grænse"
