@@ -27,6 +27,14 @@ internal static class UsageWindowLabels
         _ => Humanize(window.Kind)
     };
 
+    /// <summary>Vinduets længde, til tempo-prognosen. Ukendte grænsetyper får ingen.</summary>
+    public static TimeSpan? WindowLength(UsageWindow window) => window.Kind switch
+    {
+        "session" => TimeSpan.FromHours(5),
+        "weekly_all" or "weekly_scoped" => TimeSpan.FromDays(7),
+        _ => null
+    };
+
     /// <summary>Kort navn til bakke-tooltip'en, hvor der kun er 127 tegn.</summary>
     public static string ShortTitle(UsageWindow window) => window.Kind switch
     {

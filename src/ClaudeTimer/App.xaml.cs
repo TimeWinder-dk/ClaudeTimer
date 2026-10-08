@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Windows;
 using ClaudeTimer.Services;
+using ClaudeTimer.Themes;
 using ClaudeTimer.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -49,15 +50,23 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         // Kører ClaudeTimer allerede, vises dens vindue i stedet for en ny instans.
+        DispatcherUnhandledException += (_, args) => AppLog.Error("Uhåndteret fejl i UI-tråden", args.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            AppLog.Error("Uhåndteret fejl", args.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, args) => AppLog.Error("Uobserveret fejl i baggrundsopgave", args.Exception);
+
         _singleInstance = SingleInstance.TryAcquire();
         if (_singleInstance is null)
         {
+            AppLog.Info("En anden instans kører allerede – beder den vise sig");
             Shutdown();
             return;
         }
 
         var settings = _host.Services.GetRequiredService<ISettingsStore>().Load();
         var startupManager = _host.Services.GetRequiredService<IStartupManager>();
+        AppLog.Info($"Start: version {typeof(App).Assembly.GetName().Version}, administrator={startupManager.IsElevated}, argumenter=[{string.Join(' ', e.Args)}]");
+        ThemeManager.Apply(settings.Theme);
         if (settings.RunAsAdministrator && !startupManager.IsElevated)
         {
             _singleInstance.Release();

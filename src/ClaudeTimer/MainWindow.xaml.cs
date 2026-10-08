@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using ClaudeTimer.Models;
+using ClaudeTimer.Themes;
 using ClaudeTimer.ViewModels;
+using Microsoft.Win32;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 using System.IO;
@@ -14,6 +17,8 @@ public partial class MainWindow : Window
     private readonly Forms.NotifyIcon _notifyIcon;
     private bool _isExitRequested;
     private bool _hasShownTrayTip;
+    private readonly Drawing.Icon _logoIcon;
+    private Drawing.Icon? _currentTrayIcon;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -24,10 +29,11 @@ public partial class MainWindow : Window
         StateChanged += OnStateChanged;
         Closed += OnClosed;
 
+        _logoIcon = LoadTrayIcon();
         _notifyIcon = new Forms.NotifyIcon
         {
             Text = "ClaudeTimer",
-            Icon = LoadTrayIcon(),
+            Icon = _logoIcon,
             Visible = true,
             ContextMenuStrip = BuildTrayMenu()
         };
@@ -35,6 +41,37 @@ public partial class MainWindow : Window
 
         _viewModel.ExitRequested += (_, _) => ExitApplication();
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _viewModel.NotificationRequested += (_, text) => ShowTrayNotice(text);
+        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+    }
+
+    // Windows' lys/mørk-indstilling ændret: opdatér tema og ikonets tekstfarve.
+    private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        if (e.Category != UserPreferenceCategory.General)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_viewModel.SelectedTheme == AppTheme.System)
+            {
+                ThemeManager.Apply(AppTheme.System);
+            }
+
+            UpdateTrayIcon();
+        });
+    }
+
+    private void UpdateTrayIcon()
+    {
+        var previous = _currentTrayIcon;
+        _currentTrayIcon = _viewModel.TrayIconPercent is { } percent
+            ? TrayIconRenderer.Render(percent, ThemeManager.IsTaskbarLight)
+            : null;
+        _notifyIcon.Icon = _currentTrayIcon ?? _logoIcon;
+        previous?.Dispose();
     }
 
     /// <summary>En ny start af appen har bedt den kørende instans om at vise sig.</summary>
@@ -53,6 +90,10 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainViewModel.TrayText) && _notifyIcon.Text != _viewModel.TrayText)
         {
             _notifyIcon.Text = _viewModel.TrayText;
+        }
+        else if (e.PropertyName == nameof(MainViewModel.TrayIconPercent))
+        {
+            UpdateTrayIcon();
         }
     }
 
@@ -178,7 +219,10 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        // SystemEvents er statisk; uden afmelding holdes vinduet i live.
+        SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
+        _currentTrayIcon?.Dispose();
     }
 }

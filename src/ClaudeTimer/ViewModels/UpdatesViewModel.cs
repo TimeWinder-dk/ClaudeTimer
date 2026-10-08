@@ -135,6 +135,7 @@ public sealed partial class UpdatesViewModel : ObservableObject, IDisposable
 
             _availableRelease = release;
             IsUpdateAvailable = true;
+            AppLog.Info($"Ny version fundet: {VersionText(release.Version)} (kører {CurrentVersionText}, installationstype {_updateService.InstallKind})");
             StatusText = CanInstallAutomatically
                 ? $"Version {VersionText(release.Version)} er klar til installation."
                 : $"Version {VersionText(release.Version)} er udkommet – hent den fra GitHub.";
@@ -142,6 +143,7 @@ public sealed partial class UpdatesViewModel : ObservableObject, IDisposable
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException
             or InvalidOperationException or System.Text.Json.JsonException)
         {
+            AppLog.Warn("Søgning efter opdatering fejlede", exception);
             StatusText = "Kunne ikke søge efter opdateringer (ingen forbindelse til GitHub).";
             return;
         }
@@ -169,6 +171,7 @@ public sealed partial class UpdatesViewModel : ObservableObject, IDisposable
         {
             var package = await _updateService.DownloadVerifiedPackageAsync(release, CancellationToken.None);
             StatusText = $"Installerer version {VersionText(release.Version)} – ClaudeTimer genstarter.";
+            AppLog.Info($"Pakke hentet og SHA256 godkendt; starter installation af {VersionText(release.Version)}");
             _updateService.StartInstaller(package);
             ExitRequested?.Invoke(this, EventArgs.Empty);
         }
@@ -176,6 +179,7 @@ public sealed partial class UpdatesViewModel : ObservableObject, IDisposable
             or InvalidOperationException or IOException or UnauthorizedAccessException
             or System.ComponentModel.Win32Exception)
         {
+            AppLog.Error("Opdatering mislykkedes", exception);
             StatusText = $"Opdateringen mislykkedes: {exception.Message}";
         }
         finally

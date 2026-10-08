@@ -10,6 +10,12 @@ namespace ClaudeTimer.ViewModels;
 /// <summary>Et token fra en bestemt kilde.</summary>
 public sealed record AccountCredential(TokenSource Source, string Token);
 
+/// <summary>Hvornår der skal vises notifikationer for en konto.</summary>
+public sealed record NotificationOptions(bool Enabled, IReadOnlyList<int> Thresholds, bool OnReset)
+{
+    public static NotificationOptions None { get; } = new(false, [], false);
+}
+
 /// <summary>Én Claude-konto (konto + organisation) med sine forbrugskort – én fane.</summary>
 public sealed partial class AccountViewModel : ObservableObject
 {
@@ -35,6 +41,15 @@ public sealed partial class AccountViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _hasData;
+
+    /// <summary>Brugerens eget navn for kontoen; tomt betyder e-mailen.</summary>
+    [ObservableProperty]
+    private string _alias = string.Empty;
+
+    public NotificationOptions Notifications { get; set; } = NotificationOptions.None;
+
+    /// <summary>Udløses med en kort besked, når en grænse krydses eller nulstilles.</summary>
+    public event EventHandler<string>? NotificationRaised;
 
     public AccountViewModel(string key, string displayName)
     {
@@ -91,6 +106,7 @@ public sealed partial class AccountViewModel : ObservableObject
         }
         catch (ClaudeUsageException exception)
         {
+            AppLog.Warn($"Forbrug kunne ikke hentes for en konto (HTTP {(int?)exception.StatusCode})", exception);
             ErrorText = exception.Message;
             StatusText = HasData ? "Viser senest hentede data" : "Kunne ikke hente forbruget";
         }
@@ -139,10 +155,19 @@ public sealed partial class AccountViewModel : ObservableObject
             }
             else
             {
+                var previousUtilization = existing.Utilization;
+                var previousReset = existing.ResetsAt;
+
                 existing.Title = UsageWindowLabels.Title(window);
                 existing.Eyebrow = UsageWindowLabels.Eyebrow(window);
                 existing.ShortTitle = UsageWindowLabels.ShortTitle(window);
+                existing.WindowLength = UsageWindowLabels.WindowLength(window);
                 existing.Update(window.Utilization, window.ResetsAt);
+
+                if (DescribeChange(existing.Title, previousUtilization, previousReset, window, Notifications, now) is { } message)
+                {
+                    NotificationRaised?.Invoke(this, message);
+                }
 
                 var currentIndex = Cards.IndexOf(existing);
                 if (currentIndex != index)
@@ -174,13 +199,49 @@ public sealed partial class AccountViewModel : ObservableObject
         Tick(now);
     }
 
+    /// <summary>
+    /// Afgør om en opdatering af et kendt kort skal give en notifikation: et nyt
+    /// vindue (nulstillet) eller en krydset tærskel. Første indlæsning giver ingen.
+    /// </summary>
+    internal static string? DescribeChange(
+        string title,
+        double previousUtilization,
+        DateTimeOffset? previousReset,
+        UsageWindow window,
+        NotificationOptions options,
+        DateTimeOffset now)
+    {
+        if (!options.Enabled)
+        {
+            return null;
+        }
+
+        var isNewWindow = previousReset is { } oldReset &&
+            window.ResetsAt is { } newReset &&
+            newReset - oldReset > TimeSpan.FromMinutes(1) &&
+            oldReset <= now + TimeSpan.FromMinutes(1);
+        if (isNewWindow)
+        {
+            return options.OnReset ? $"{title} er nulstillet – fuld kvote igen." : null;
+        }
+
+        var crossed = options.Thresholds
+            .Where(threshold => previousUtilization < threshold && window.Utilization >= threshold)
+            .DefaultIfEmpty(-1)
+            .Max();
+        return crossed > 0 ? $"{title} har nået {crossed} %." : null;
+    }
+
     private static UsageCardViewModel CreateCard(UsageWindow window)
     {
         var card = new UsageCardViewModel(
             UsageWindowLabels.Title(window),
             UsageWindowLabels.Eyebrow(window),
             window.Key,
-            UsageWindowLabels.ShortTitle(window));
+            UsageWindowLabels.ShortTitle(window))
+        {
+            WindowLength = UsageWindowLabels.WindowLength(window)
+        };
         card.Update(window.Utilization, window.ResetsAt);
         return card;
     }

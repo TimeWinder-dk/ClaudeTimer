@@ -15,7 +15,7 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="False"
-        Background="{StaticResource CanvasBrush}"
+        Background="{DynamicResource CanvasBrush}"
         UseLayoutRounding="True">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="48"
@@ -80,7 +80,7 @@
                                Text="Dit Claude-forbrug" />
                     <TextBlock Margin="1,7,0,0"
                                FontSize="14"
-                               Foreground="{StaticResource MutedTextBrush}">
+                               Foreground="{DynamicResource MutedTextBrush}">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                 <Setter Property="Text" Value="{Binding StatusText}" />
@@ -123,7 +123,7 @@
                             <TextBlock FontSize="13" FontWeight="SemiBold" Text="{Binding DisplayName}" />
                             <TextBlock Margin="0,2,0,0"
                                        FontSize="11"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
                                        Text="{Binding Subtitle}" />
                         </StackPanel>
                     </DataTemplate>
@@ -145,8 +145,8 @@
                             <Border Width="224"
                                     Margin="0,0,14,14"
                                     Padding="26"
-                                    Background="{StaticResource SurfaceBrush}"
-                                    BorderBrush="{StaticResource StrokeBrush}"
+                                    Background="{DynamicResource SurfaceBrush}"
+                                    BorderBrush="{DynamicResource StrokeBrush}"
                                     BorderThickness="1"
                                     CornerRadius="14">
                                 <Border.Effect>
@@ -165,19 +165,19 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock FontSize="12"
-                           Foreground="{StaticResource ErrorBrush}"
+                           Foreground="{DynamicResource ErrorBrush}"
                            Text="{Binding SelectedAccount.ErrorText}"
                            TextTrimming="CharacterEllipsis" />
                 <TextBlock Grid.Column="1"
                            FontSize="12"
-                           Foreground="{StaticResource MutedTextBrush}"
+                           Foreground="{DynamicResource MutedTextBrush}"
                            Text="{Binding SelectedAccount.LastUpdatedText, FallbackValue='Ikke opdateret endnu', TargetNullValue='Ikke opdateret endnu'}" />
             </Grid>
         </Grid>
 
         <Border Grid.RowSpan="2"
                 Margin="0"
-                Background="#66000000"
+                Background="{DynamicResource OverlayBrush}"
                 shell:WindowChrome.IsHitTestVisibleInChrome="True">
             <Border.Style>
                 <Style TargetType="Border">
@@ -193,7 +193,7 @@
                     Margin="0,24"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Background="{StaticResource SurfaceBrush}"
+                    Background="{DynamicResource SurfaceBrush}"
                     CornerRadius="16">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -210,13 +210,13 @@
                         </Grid.ColumnDefinitions>
                         <Border Width="40"
                                 Height="40"
-                                Background="{StaticResource AccentSoftBrush}"
+                                Background="{DynamicResource AccentSoftBrush}"
                                 CornerRadius="12">
                             <TextBlock HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        FontFamily="Segoe Fluent Icons"
                                        FontSize="18"
-                                       Foreground="{StaticResource AccentBrush}"
+                                       Foreground="{DynamicResource AccentBrush}"
                                        Text="&#xE713;" />
                         </Border>
                         <TextBlock Grid.Column="1"
@@ -295,9 +295,81 @@
                                     Background="Transparent"
                                     BorderThickness="0"
                                     Command="{Binding ForgetTokenCommand}"
-                                    Foreground="{StaticResource MutedTextBrush}"
+                                    Foreground="{DynamicResource MutedTextBrush}"
                                     Content="Glem gemt token"
                                     Cursor="Hand" />
+
+                            <!-- Konti: egne navne -->
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}"
+                                       Text="KONTI"
+                                       Visibility="{Binding HasAccounts, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <ItemsControl ItemsSource="{Binding Accounts}"
+                                          Visibility="{Binding HasAccounts, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="180" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock FontSize="13" FontWeight="SemiBold" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Style="{StaticResource SettingsHintStyle}" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                            <TextBox Grid.Column="1"
+                                                     Margin="12,0,0,0"
+                                                     Text="{Binding Alias, UpdateSourceTrigger=LostFocus}"
+                                                     ToolTip="Eget navn, fx Arbejde eller Privat. Tomt = e-mail." />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Margin="0,-4,0,0"
+                                       Style="{StaticResource SettingsHintStyle}"
+                                       Text="Skriv et eget navn til hver konto – det bruges i faner, tooltip og notifikationer."
+                                       Visibility="{Binding HasAccounts, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                            <!-- Udseende -->
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="UDSEENDE" />
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Margin="0,0,18,8"
+                                             GroupName="Theme"
+                                             Content="Følg Windows"
+                                             IsChecked="{Binding SelectedTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=System}" />
+                                <RadioButton Margin="0,0,18,8"
+                                             GroupName="Theme"
+                                             Content="Lys"
+                                             IsChecked="{Binding SelectedTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light}" />
+                                <RadioButton GroupName="Theme"
+                                             Content="Mørk"
+                                             IsChecked="{Binding SelectedTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark}" />
+                            </StackPanel>
+                            <CheckBox Margin="0,6,0,4"
+                                      Content="Vis forbruget i bakke-ikonet"
+                                      IsChecked="{Binding ShowUsageInTrayIcon}" />
+                            <TextBlock Margin="26,0,0,0"
+                                       Style="{StaticResource SettingsHintStyle}"
+                                       Text="Ikonet viser den mest pressede grænse som ring og procent: grøn under 50 %, gul under 80 %, rød derover." />
+
+                            <!-- Notifikationer -->
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="NOTIFIKATIONER" />
+                            <CheckBox Content="Vis notifikationer fra bakken"
+                                      IsChecked="{Binding NotificationsEnabled}" />
+                            <Grid Margin="26,0,0,10" IsEnabled="{Binding NotificationsEnabled}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="120" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock VerticalAlignment="Center" FontSize="14" Text="Advar ved (%)" />
+                                <TextBox Grid.Column="1"
+                                         Margin="12,0,0,0"
+                                         Text="{Binding NotifyThresholdsText, UpdateSourceTrigger=LostFocus}"
+                                         ToolTip="Fx 80, 95 – tom for ingen advarsler" />
+                            </Grid>
+                            <CheckBox Margin="26,0,0,10"
+                                      Content="Besked når en grænse nulstilles (fuld kvote igen)"
+                                      IsChecked="{Binding NotifyOnReset}"
+                                      IsEnabled="{Binding NotificationsEnabled}" />
 
                             <!-- Opstart -->
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="OPSTART" />
@@ -356,6 +428,16 @@
                                         Style="{StaticResource SecondaryButtonStyle}"
                                         Visibility="{Binding Updates.IsUpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}" />
                             </StackPanel>
+
+                            <!-- Fejllog -->
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="FEJLLOG" />
+                            <TextBlock Style="{StaticResource SettingsHintStyle}"
+                                       Text="Hændelser og fejl (fx opdateringer og token-læsning) skrives til %LOCALAPPDATA%\ClaudeTimer\log.txt. Tokens og e-mails logges aldrig." />
+                            <Button Margin="0,10,0,4"
+                                    HorizontalAlignment="Left"
+                                    Command="{Binding OpenLogCommand}"
+                                    Content="Åbn log"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
                         </StackPanel>
                     </ScrollViewer>
 
@@ -366,11 +448,11 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock FontSize="12"
-                                       Foreground="{StaticResource AccentBrush}"
+                                       Foreground="{DynamicResource AccentBrush}"
                                        Text="{Binding SettingsMessage}"
                                        TextWrapping="Wrap" />
                             <TextBlock FontSize="12"
-                                       Foreground="{StaticResource ErrorBrush}"
+                                       Foreground="{DynamicResource ErrorBrush}"
                                        Text="{Binding SelectedAccount.ErrorText}"
                                        TextWrapping="Wrap" />
                         </StackPanel>

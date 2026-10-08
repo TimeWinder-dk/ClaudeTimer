@@ -99,7 +99,8 @@ public sealed class GitHubUpdateService(HttpClient httpClient) : IUpdateService
             "-ProcessId", Environment.ProcessId.ToString(),
             "-Package", packagePath,
             "-Kind", InstallKind.ToString(),
-            "-AppPath", _executablePath
+            "-AppPath", _executablePath,
+            "-LogPath", AppLog.FilePath
         })
         {
             startInfo.ArgumentList.Add(argument);
@@ -178,14 +179,24 @@ public sealed class GitHubUpdateService(HttpClient httpClient) : IUpdateService
 
     // Venter på at appen lukker, installerer stille og starter appen igen.
     private const string InstallerScript = """
-        param([int]$ProcessId, [string]$Package, [string]$Kind, [string]$AppPath)
+        param([int]$ProcessId, [string]$Package, [string]$Kind, [string]$AppPath, [string]$LogPath)
         $ErrorActionPreference = 'Continue'
+        function Log([string]$Message) {
+            try { Add-Content -LiteralPath $LogPath -Value ("{0} INFO  [opdatering] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff zzz'), $Message) } catch {}
+        }
+        Log "Venter på at ClaudeTimer (PID $ProcessId) lukker"
         Wait-Process -Id $ProcessId -Timeout 60 -ErrorAction SilentlyContinue
-        switch ($Kind) {
-            'Setup'       { Start-Process -FilePath $Package -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait }
-            'MsiPerUser'  { Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i',"`"$Package`"",'/qn','/norestart' -Wait }
-            'MsiAllUsers' { Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i',"`"$Package`"",'/qn','/norestart' -Verb RunAs -Wait }
-            'Portable'    { Copy-Item -LiteralPath $Package -Destination $AppPath -Force }
+        try {
+            $exit = 0
+            switch ($Kind) {
+                'Setup'       { $exit = (Start-Process -FilePath $Package -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru).ExitCode }
+                'MsiPerUser'  { $exit = (Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i',"`"$Package`"",'/qn','/norestart' -Wait -PassThru).ExitCode }
+                'MsiAllUsers' { $exit = (Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i',"`"$Package`"",'/qn','/norestart' -Verb RunAs -Wait -PassThru).ExitCode }
+                'Portable'    { Copy-Item -LiteralPath $Package -Destination $AppPath -Force }
+            }
+            Log "Installation ($Kind) afsluttet med kode $exit"
+        } catch {
+            Log "Installation ($Kind) fejlede: $($_.Exception.Message)"
         }
         Start-Process -FilePath $AppPath -ArgumentList '--updated'
         Remove-Item -LiteralPath $Package -Force -ErrorAction SilentlyContinue

@@ -29,6 +29,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     // Profil pr. token, så vi ikke slår samme token op ved hver opdatering.
     private readonly Dictionary<string, ClaudeAccount> _profileCache = new(StringComparer.Ordinal);
     private bool _isInitialized;
+    private string? _lastDiscoverySummary;
     private bool _isRevertingSetting;
 
     [ObservableProperty]
@@ -137,6 +138,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             StartWithWindows = _settings.StartWithWindows;
             StartHiddenInTray = _settings.StartHiddenInTray;
             RunAsAdministrator = _settings.RunAsAdministrator;
+            LoadPreferences();
         });
 
         Accounts.CollectionChanged += (_, _) =>
@@ -336,6 +338,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         if (!applied)
         {
+            AppLog.Warn($"Automatisk start kunne ikke ændres (start={startWithWindows}, administrator={elevated})");
             SettingsMessage = "Kunne ikke ændre automatisk start (administrator-godkendelse afvist eller fejlet).";
         }
 
@@ -363,6 +366,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
+            AppLog.Error("Indstillingerne kunne ikke gemmes", exception);
             SettingsMessage = "Indstillingerne kunne ikke gemmes.";
         }
     }
@@ -446,6 +450,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (account is null)
             {
                 account = new AccountViewModel(key, string.Empty);
+                AttachAccount(account);
                 Accounts.Insert(Math.Min(index, Accounts.Count), account);
             }
             else if (Accounts.IndexOf(account) != index)
@@ -462,11 +467,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             if (!liveKeys.Contains(Accounts[i].Key))
             {
+                DetachAccount(Accounts[i]);
                 Accounts.RemoveAt(i);
             }
         }
 
         ApplyAccountNames(Accounts);
+
+        // Log kun når billedet ændrer sig, så loggen ikke fyldes hvert 5. minut.
+        var summary = string.Join("; ", discovered.Select(entry =>
+            $"{(entry.Profile is null ? "ukendt konto" : "konto")} via {string.Join("+", entry.Credentials.Select(c => c.Source))}"));
+        if (summary != _lastDiscoverySummary)
+        {
+            AppLog.Info($"Konti fundet: {discovered.Count} ({summary})");
+            _lastDiscoverySummary = summary;
+        }
 
         if (SelectedAccount is null || !Accounts.Contains(SelectedAccount))
         {
@@ -496,7 +511,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             var sourceNames = string.Join(", ", account.Credentials.Select(credential => SourceLabel(credential.Source)));
             var profile = account.Profile;
-            if (profile is null)
+            var email = profile?.Email ?? profile?.DisplayName ?? profile?.AccountId;
+
+            // Et eget navn vinder; e-mail og organisation flytter ned i undertitlen.
+            if (account.Alias.Trim() is { Length: > 0 } alias)
+            {
+                account.DisplayName = alias;
+                account.ShortName = alias;
+                account.Subtitle = string.Join(" · ", new[] { email, profile?.OrganizationName, sourceNames }
+                    .Where(part => !string.IsNullOrWhiteSpace(part)));
+                continue;
+            }
+
+            if (profile is null || email is null)
             {
                 account.DisplayName = sourceNames;
                 account.ShortName = sourceNames;
@@ -504,7 +531,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 continue;
             }
 
-            var email = profile.Email ?? profile.DisplayName ?? profile.AccountId;
             var isDuplicate = profile.Email is not null && duplicateEmails.Contains(profile.Email);
             account.DisplayName = isDuplicate && profile.OrganizationName is { Length: > 0 } org
                 ? $"{email} · {org}"
@@ -544,8 +570,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _profileCache[token] = profile;
             return profile;
         }
-        catch (ClaudeUsageException)
+        catch (ClaudeUsageException exception)
         {
+            AppLog.Warn($"Profil kunne ikke hentes (HTTP {(int?)exception.StatusCode})", exception);
             return null;
         }
     }
@@ -598,7 +625,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         UpdateTrayText();
     }
 
-    private void UpdateTrayText() => TrayText = TrayTextBuilder.Build(Accounts);
+    private void UpdateTrayText()
+    {
+        TrayText = TrayTextBuilder.Build(Accounts);
+        UpdateTrayIcon();
+    }
 
     internal static string NormalizeToken(string token)
     {
