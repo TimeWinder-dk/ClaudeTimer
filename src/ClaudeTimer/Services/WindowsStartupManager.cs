@@ -8,17 +8,23 @@ using Microsoft.Win32;
 
 namespace ClaudeTimer.Services;
 
+/// <summary>
+/// Automatisk start via en planlagt opgave med logon-trigger. Den starter appen
+/// straks ved login – Run-nøglen kan forsinkes flere minutter af Windows efter en
+/// genstart. Uden administrator oprettes opgaven med brugerens egne rettigheder
+/// (ingen UAC); med administrator kræver oprettelse og sletning én godkendelse.
+/// </summary>
 public sealed class WindowsStartupManager : IStartupManager
 {
     public const string AutostartArgument = "--autostart";
 
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string AppKeyPath = @"Software\ClaudeTimer";
-    private const string TaskMarkerValue = "ElevatedStartupTask";
+    private const string ElevatedTaskMarker = "ElevatedStartupTask";
     private const string AppName = "ClaudeTimer";
     private const int ErrorCancelled = 1223;
 
-    private static readonly TimeSpan ElevatedCommandTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan SchtasksTimeout = TimeSpan.FromSeconds(60);
 
     private readonly string _executablePath =
         Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "ClaudeTimer.exe");
@@ -27,9 +33,9 @@ public sealed class WindowsStartupManager : IStartupManager
 
     public bool Apply(bool startWithWindows, bool elevated)
     {
-        if (startWithWindows && elevated)
+        if (!startWithWindows)
         {
-            if (!RegisterElevatedTask())
+            if (!DeleteTask())
             {
                 return false;
             }
@@ -38,23 +44,70 @@ public sealed class WindowsStartupManager : IStartupManager
             return true;
         }
 
-        // Fjern den planlagte opgave først: kræver UAC, og afviser brugeren den,
-        // lader vi den eksisterende registrering være uændret.
-        if (!RemoveElevatedTask())
+        if (elevated)
+        {
+            if (!RegisterTask(elevated: true))
+            {
+                return false;
+            }
+
+            RemoveRunKey();
+            return true;
+        }
+
+        // En eksisterende administrator-opgave kan kun overskrives/slettes elevated.
+        if (HasElevatedTask && !DeleteTask())
         {
             return false;
         }
 
-        if (startWithWindows)
-        {
-            SetRunKey();
-        }
-        else
+        if (RegisterTask(elevated: false))
         {
             RemoveRunKey();
         }
+        else
+        {
+            // Fx hvis Task Scheduler er låst af en politik: Run-nøglen virker altid.
+            AppLog.Warn("Planlagt opgave kunne ikke oprettes – bruger Run-nøglen i stedet");
+            SetRunKey();
+        }
 
         return true;
+    }
+
+    public void EnsureRegistered(bool startWithWindows, bool elevated)
+    {
+        if (!startWithWindows)
+        {
+            return;
+        }
+
+        // Flyt stille (uden UAC) en ældre Run-nøgle-opsætning over på opgaven. Stien
+        // tages fra Run-nøglen, så en test-kørsel fra en anden mappe ikke "kaprer"
+        // den installerede apps autostart.
+        if (elevated || HasElevatedTask || ReadRunKeyPath() is not { } registeredPath)
+        {
+            return;
+        }
+
+        if (RegisterTask(elevated: false, registeredPath))
+        {
+            RemoveRunKey();
+            AppLog.Info("Automatisk start flyttet fra Run-nøglen til en planlagt logon-opgave");
+        }
+    }
+
+    private static string? ReadRunKeyPath()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
+        if (key?.GetValue(AppName) is not string value || value.Length < 3 || value[0] != '"')
+        {
+            return null;
+        }
+
+        var end = value.IndexOf('"', 1);
+        var path = end > 1 ? value[1..end] : null;
+        return path is not null && File.Exists(path) ? path : null;
     }
 
     public bool TryRelaunchElevated(IEnumerable<string> arguments)
@@ -80,29 +133,34 @@ public sealed class WindowsStartupManager : IStartupManager
         }
     }
 
-    internal static string BuildTaskXml(string executablePath, string userId)
+    internal static string BuildTaskXml(string executablePath, string userId, bool elevated)
     {
         var command = SecurityElement.Escape(executablePath);
         var workingDirectory = SecurityElement.Escape(Path.GetDirectoryName(executablePath) ?? string.Empty);
         var user = SecurityElement.Escape(userId);
+        var runLevel = elevated ? "HighestAvailable" : "LeastPrivilege";
+        var description = elevated
+            ? "Starter ClaudeTimer som administrator ved logon."
+            : "Starter ClaudeTimer ved logon.";
 
         return $"""
             <?xml version="1.0" encoding="UTF-16"?>
             <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
               <RegistrationInfo>
-                <Description>Starter ClaudeTimer som administrator ved logon.</Description>
+                <Description>{description}</Description>
               </RegistrationInfo>
               <Triggers>
                 <LogonTrigger>
                   <Enabled>true</Enabled>
                   <UserId>{user}</UserId>
+                  <Delay>PT5S</Delay>
                 </LogonTrigger>
               </Triggers>
               <Principals>
                 <Principal id="Author">
                   <UserId>{user}</UserId>
                   <LogonType>InteractiveToken</LogonType>
-                  <RunLevel>HighestAvailable</RunLevel>
+                  <RunLevel>{runLevel}</RunLevel>
                 </Principal>
               </Principals>
               <Settings>
@@ -135,21 +193,39 @@ public sealed class WindowsStartupManager : IStartupManager
             """;
     }
 
-    private bool RegisterElevatedTask()
+    private static bool HasElevatedTask
+    {
+        get
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(AppKeyPath);
+            return key?.GetValue(ElevatedTaskMarker) is not null;
+        }
+    }
+
+    private bool RegisterTask(bool elevated, string? executablePath = null)
     {
         var xmlPath = Path.Combine(Path.GetTempPath(), $"ClaudeTimer-task-{Guid.NewGuid():N}.xml");
         try
         {
             var userId = WindowsIdentity.GetCurrent().Name;
-            File.WriteAllText(xmlPath, BuildTaskXml(_executablePath, userId), Encoding.Unicode);
+            File.WriteAllText(xmlPath, BuildTaskXml(executablePath ?? _executablePath, userId, elevated), Encoding.Unicode);
 
-            if (!RunSchtasks(["/Create", "/TN", AppName, "/XML", xmlPath, "/F"]))
+            if (!RunSchtasks(["/Create", "/TN", AppName, "/XML", xmlPath, "/F"], requireElevation: elevated))
             {
+                AppLog.Warn($"Planlagt opgave kunne ikke oprettes (administrator={elevated})");
                 return false;
             }
 
             using var key = Registry.CurrentUser.CreateSubKey(AppKeyPath);
-            key.SetValue(TaskMarkerValue, 1, RegistryValueKind.DWord);
+            if (elevated)
+            {
+                key.SetValue(ElevatedTaskMarker, 1, RegistryValueKind.DWord);
+            }
+            else
+            {
+                key.DeleteValue(ElevatedTaskMarker, throwOnMissingValue: false);
+            }
+
             return true;
         }
         finally
@@ -164,20 +240,21 @@ public sealed class WindowsStartupManager : IStartupManager
         }
     }
 
-    private bool RemoveElevatedTask()
+    private bool DeleteTask()
     {
-        using var key = Registry.CurrentUser.OpenSubKey(AppKeyPath, writable: true);
-        if (key?.GetValue(TaskMarkerValue) is null)
+        var elevated = HasElevatedTask;
+        if (!RunSchtasks(["/Query", "/TN", AppName], requireElevation: false) && !elevated)
         {
             return true;
         }
 
-        if (!RunSchtasks(["/Delete", "/TN", AppName, "/F"]))
+        if (!RunSchtasks(["/Delete", "/TN", AppName, "/F"], requireElevation: elevated))
         {
             return false;
         }
 
-        key.DeleteValue(TaskMarkerValue, throwOnMissingValue: false);
+        using var key = Registry.CurrentUser.OpenSubKey(AppKeyPath, writable: true);
+        key?.DeleteValue(ElevatedTaskMarker, throwOnMissingValue: false);
         return true;
     }
 
@@ -193,29 +270,34 @@ public sealed class WindowsStartupManager : IStartupManager
         key?.DeleteValue(AppName, throwOnMissingValue: false);
     }
 
-    private bool RunSchtasks(IReadOnlyList<string> arguments)
+    private bool RunSchtasks(IReadOnlyList<string> arguments, bool requireElevation)
     {
         var startInfo = new ProcessStartInfo("schtasks.exe")
         {
             CreateNoWindow = true,
-            WindowStyle = ProcessWindowStyle.Hidden
+            WindowStyle = ProcessWindowStyle.Hidden,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
         }
 
-        if (!IsElevated)
+        if (requireElevation && !IsElevated)
         {
             // Opgaver med højeste rettigheder kan kun oprettes/slettes elevated.
             startInfo.UseShellExecute = true;
+            startInfo.RedirectStandardOutput = false;
+            startInfo.RedirectStandardError = false;
             startInfo.Verb = "runas";
         }
 
         try
         {
             using var process = Process.Start(startInfo);
-            if (process is null || !process.WaitForExit(ElevatedCommandTimeout))
+            if (process is null || !process.WaitForExit(SchtasksTimeout))
             {
                 return false;
             }

@@ -50,14 +50,17 @@ public sealed class SettingsTests : IDisposable
         Assert.Equal(TokenSource.Automatic, new JsonSettingsStore(path).Load().TokenSource);
     }
 
-    [Fact]
-    public void BuildTaskXml_IsValidAndRunsElevatedWithoutTimeLimit()
+    [Theory]
+    [InlineData(true, "HighestAvailable")]
+    [InlineData(false, "LeastPrivilege")]
+    public void BuildTaskXml_IsValidLogonTaskWithoutTimeLimit(bool elevated, string runLevel)
     {
-        var xml = WindowsStartupManager.BuildTaskXml(@"C:\Program Files\A&B\ClaudeTimer.exe", @"PC\user");
+        var xml = WindowsStartupManager.BuildTaskXml(@"C:\Program Files\A&B\ClaudeTimer.exe", @"PC\user", elevated);
         var document = XDocument.Parse(xml);
         XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
 
-        Assert.Equal("HighestAvailable", document.Descendants(ns + "RunLevel").Single().Value);
+        Assert.Equal(runLevel, document.Descendants(ns + "RunLevel").Single().Value);
+        Assert.Equal(@"PC\user", document.Descendants(ns + "LogonTrigger").Single().Element(ns + "UserId")!.Value);
         Assert.Equal("PT0S", document.Descendants(ns + "ExecutionTimeLimit").Single().Value);
         Assert.Equal("false", document.Descendants(ns + "DisallowStartIfOnBatteries").Single().Value);
         Assert.Equal(@"C:\Program Files\A&B\ClaudeTimer.exe", document.Descendants(ns + "Command").Single().Value);

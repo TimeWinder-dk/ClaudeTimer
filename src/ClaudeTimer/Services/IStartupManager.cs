@@ -14,6 +14,12 @@ public interface IStartupManager
     bool Apply(bool startWithWindows, bool elevated);
 
     /// <summary>
+    /// Flytter ved opstart stille (uden UAC) en ældre Run-nøgle-registrering over
+    /// på den hurtigere planlagte logon-opgave.
+    /// </summary>
+    void EnsureRegistered(bool startWithWindows, bool elevated);
+
+    /// <summary>
     /// Starter appen igen som administrator. Returnerer false hvis
     /// UAC-prompten blev afvist.
     /// </summary>

@@ -87,6 +87,9 @@ public partial class App : System.Windows.Application
             }
         }
 
+        // Flyt ældre Run-nøgle-opsætninger til den hurtigere logon-opgave (uden UAC).
+        _ = Task.Run(() => startupManager.EnsureRegistered(settings.StartWithWindows, settings.RunAsAdministrator));
+
         await _host.StartAsync();
         var window = _host.Services.GetRequiredService<MainWindow>();
         _singleInstance.ListenForShowRequests(() => Dispatcher.BeginInvoke(window.ShowFromTrayRequest));
