@@ -22,9 +22,9 @@ minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
 og vælg én af:
 
-- Direkte download af installer: [ClaudeTimer-Setup-1.5.2.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.2/ClaudeTimer-Setup-1.5.2.exe)
-- SHA256 (installer): [ClaudeTimer-Setup-1.5.2.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.2/ClaudeTimer-Setup-1.5.2.exe.sha256)
-- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.2/SHA256SUMS.txt)
+- Direkte download af installer: [ClaudeTimer-Setup-1.5.3.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.3/ClaudeTimer-Setup-1.5.3.exe)
+- SHA256 (installer): [ClaudeTimer-Setup-1.5.3.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.3/ClaudeTimer-Setup-1.5.3.exe.sha256)
+- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.3/SHA256SUMS.txt)
 
 - **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
   `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
@@ -43,7 +43,7 @@ offline — fx ved at kopiere filen til en maskine uden internet.
 Kontrollér en download mod checksummen:
 
 ```powershell
-(Get-FileHash .\ClaudeTimer-Setup-1.5.2.exe -Algorithm SHA256).Hash
+(Get-FileHash .\ClaudeTimer-Setup-1.5.3.exe -Algorithm SHA256).Hash
 # sammenlign med linjen i SHA256SUMS.txt
 ```
 
@@ -79,7 +79,7 @@ MSI'en installerer per bruger til `%LOCALAPPDATA%\Programs\ClaudeTimer` og kan
 installeres uden admin med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.5.2-win-x64.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.5.3-win-x64.msi
 ```
 
 All-users MSI bygges via:
@@ -91,7 +91,7 @@ All-users MSI bygges via:
 Og installeres med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.5.2-win-x64-allusers.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.5.3-win-x64-allusers.msi
 ```
 
 Bemærk: all-users MSI opretter ikke genveje i denne version.
@@ -139,8 +139,10 @@ Tandhjulet øverst til højre åbner de samlede indstillinger, som gemmes i
   VS Code-udvidelsen, så ét login i en af dem dækker begge. Udløbne tokens
   springes over.
 - *Claude Desktop* — læser Claude Desktop-appens token-cache (`config.json` i
-  `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude` for
-  Store/MSIX-installationen, ellers `%APPDATA%\Claude`). Cachen er krypteret med
+  `%LOCALAPPDATA%\Claude-Data\claude_*` for nyere versioner,
+  `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude` for ældre
+  Store/MSIX-installationer, ellers `%APPDATA%\Claude`; findes flere, bruges den
+  senest opdaterede). Cachen er krypteret med
   Electrons safeStorage (AES-GCM med en DPAPI-beskyttet nøgle) og kan kun læses
   af din egen Windows-bruger. Kun et gyldigt token med `user:profile`-scope bruges.
   **Fra som standard:** dekrypteringen ligner det, infostealere gør, så Microsoft

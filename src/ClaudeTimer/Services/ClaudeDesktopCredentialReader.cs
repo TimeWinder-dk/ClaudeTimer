@@ -170,21 +170,35 @@ public sealed class ClaudeDesktopCredentialReader : IClaudeDesktopCredentialRead
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
+        // Ældre versioner kan efterlade en forældet config.json, så den senest skrevne vinder.
+        return EnumerateDataDirectoryCandidates(localAppData, roaming)
+            .Where(candidate => File.Exists(Path.Combine(candidate, "config.json")))
+            .OrderByDescending(candidate => File.GetLastWriteTimeUtc(Path.Combine(candidate, "config.json")))
+            .FirstOrDefault();
+    }
+
+    private static IEnumerable<string> EnumerateDataDirectoryCandidates(string localAppData, string roaming)
+    {
+        // Nyere versioner (4.x) gemmer data uden for pakken: %LOCALAPPDATA%\Claude-Data\claude_<udgiver>.
+        var claudeData = Path.Combine(localAppData, "Claude-Data");
+        if (Directory.Exists(claudeData))
+        {
+            foreach (var directory in Directory.EnumerateDirectories(claudeData, "claude_*"))
+            {
+                yield return directory;
+            }
+        }
+
         // MSIX-installationen (Microsoft Store / winget) virtualiserer %APPDATA%.
         var packages = Path.Combine(localAppData, "Packages");
         if (Directory.Exists(packages))
         {
             foreach (var package in Directory.EnumerateDirectories(packages, "Claude_*"))
             {
-                var candidate = Path.Combine(package, "LocalCache", "Roaming", "Claude");
-                if (File.Exists(Path.Combine(candidate, "config.json")))
-                {
-                    return candidate;
-                }
+                yield return Path.Combine(package, "LocalCache", "Roaming", "Claude");
             }
         }
 
-        var classic = Path.Combine(roaming, "Claude");
-        return File.Exists(Path.Combine(classic, "config.json")) ? classic : null;
+        yield return Path.Combine(roaming, "Claude");
     }
 }
