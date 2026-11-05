@@ -29,9 +29,9 @@ minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
 og vælg én af:
 
-- Direkte download af installer: [ClaudeTimer-Setup-1.5.3.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.3/ClaudeTimer-Setup-1.5.3.exe)
-- SHA256 (installer): [ClaudeTimer-Setup-1.5.3.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.3/ClaudeTimer-Setup-1.5.3.exe.sha256)
-- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.5.3/SHA256SUMS.txt)
+- Direkte download af installer: [ClaudeTimer-Setup-1.6.0.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.6.0/ClaudeTimer-Setup-1.6.0.exe)
+- SHA256 (installer): [ClaudeTimer-Setup-1.6.0.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.6.0/ClaudeTimer-Setup-1.6.0.exe.sha256)
+- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.6.0/SHA256SUMS.txt)
 
 - **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
   `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
@@ -50,7 +50,7 @@ offline — fx ved at kopiere filen til en maskine uden internet.
 Kontrollér en download mod checksummen:
 
 ```powershell
-(Get-FileHash .\ClaudeTimer-Setup-1.5.3.exe -Algorithm SHA256).Hash
+(Get-FileHash .\ClaudeTimer-Setup-1.6.0.exe -Algorithm SHA256).Hash
 # sammenlign med linjen i SHA256SUMS.txt
 ```
 
@@ -86,7 +86,7 @@ MSI'en installerer per bruger til `%LOCALAPPDATA%\Programs\ClaudeTimer` og kan
 installeres uden admin med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.5.3-win-x64.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.6.0-win-x64.msi
 ```
 
 All-users MSI bygges via:
@@ -98,7 +98,7 @@ All-users MSI bygges via:
 Og installeres med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.5.3-win-x64-allusers.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.6.0-win-x64-allusers.msi
 ```
 
 Bemærk: all-users MSI opretter ikke genveje i denne version.
