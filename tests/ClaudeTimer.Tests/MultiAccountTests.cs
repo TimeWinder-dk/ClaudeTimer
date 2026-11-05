@@ -10,6 +10,69 @@ public sealed class MultiAccountTests
 {
     private static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-10-08T12:00:00Z");
 
+    private static string Credentials(string token, DateTimeOffset expires) =>
+        $$$"""{"claudeAiOauth":{"accessToken":"{{{token}}}","refreshToken":"r","expiresAt":{{{expires.ToUnixTimeMilliseconds()}}}}}""";
+
+    [Fact]
+    public void ParseAccessToken_SkipsExpiredAndMalformed()
+    {
+        var now = Now.ToUnixTimeMilliseconds();
+        Assert.Equal("a", ClaudeCodeCredentialReader.ParseAccessToken(Credentials("a", Now.AddHours(1)), now));
+        Assert.Null(ClaudeCodeCredentialReader.ParseAccessToken(Credentials("a", Now.AddSeconds(-1)), now));
+        Assert.Null(ClaudeCodeCredentialReader.ParseAccessToken("""{"claudeAiOauth":{}}""", now));
+        Assert.Null(ClaudeCodeCredentialReader.ParseAccessToken("""{"claudeAiOauth":{"accessToken":42}}""", now));
+        Assert.Null(ClaudeCodeCredentialReader.ParseAccessToken("ikke json", now));
+    }
+
+    [Fact]
+    public async Task ReadProfiles_FindsAccountFolders_AndSkipsTheMainLogin()
+    {
+        var root = Directory.CreateTempSubdirectory("ct-profiles-");
+        try
+        {
+            var main = Directory.CreateDirectory(Path.Combine(root.FullName, "main"));
+            var accounts = Directory.CreateDirectory(Path.Combine(root.FullName, "accounts"));
+            await File.WriteAllTextAsync(Path.Combine(main.FullName, ".credentials.json"), Credentials("main", DateTimeOffset.UtcNow.AddHours(1)));
+            foreach (var (name, token, expires) in new[]
+            {
+                ("privat", "p", DateTimeOffset.UtcNow.AddHours(1)),
+                ("arbejde", "w", DateTimeOffset.UtcNow.AddHours(1)),
+                ("gammel", "g", DateTimeOffset.UtcNow.AddHours(-1)),
+            })
+            {
+                var dir = Directory.CreateDirectory(Path.Combine(accounts.FullName, name));
+                await File.WriteAllTextAsync(Path.Combine(dir.FullName, ".credentials.json"), Credentials(token, expires));
+            }
+
+            Directory.CreateDirectory(Path.Combine(accounts.FullName, "uden-login"));
+
+            var reader = new ClaudeCodeCredentialReader(main.FullName, accounts.FullName);
+            var profiles = await reader.ReadProfilesAsync();
+
+            Assert.Equal(["arbejde", "gammel", "privat"], profiles.Select(p => p.Name));
+            Assert.Equal(["w", null, "p"], profiles.Select(p => p.AccessToken));
+            Assert.Equal("main", await reader.TryReadAccessTokenAsync());
+            Assert.Empty(await new ClaudeCodeCredentialReader(main.FullName, Path.Combine(root.FullName, "findes-ikke")).ReadProfilesAsync());
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Profiles_AreNamedInSubtitle_AndStatus()
+    {
+        Assert.Equal("Claude Code (arbejde)",
+            MainViewModel.CredentialLabel(new AccountCredential(TokenSource.ClaudeCode, "t", "arbejde")));
+        Assert.Equal("Claude Code", MainViewModel.CredentialLabel(new AccountCredential(TokenSource.ClaudeCode, "t")));
+
+        Assert.Null(MainViewModel.DescribeProfiles("dir", []));
+        Assert.Equal(
+            "Kontoprofiler (dir): 2 fundet – aktive: arbejde. Udløbet login: gammel – brug kontoen i Claude Code, så fornyes det.",
+            MainViewModel.DescribeProfiles("dir", [new("arbejde", "x", "t"), new("gammel", "y", null)]));
+    }
+
     [Fact]
     public void Desktop_Decrypt_ReadsElectronSafeStorageFormat()
     {

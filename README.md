@@ -17,6 +17,12 @@ Appen viser for hvert vindue:
 Grænserne kan vises som **kort** eller **målere** (gauges med prognose-markør). Skift
 med knappen øverst til højre eller under Indstillinger → Udseende.
 
+Bruger du VS Code-udvidelsen *Multi-Account Switcher for Claude Code*, finder
+ClaudeTimer også kontiene i `%USERPROFILE%\.claude-accounts` og viser hver konto i sin
+egen fane. Appen læser kun tokens og fornyer dem aldrig. En konto, der ikke har været
+brugt i et stykke tid, vises derfor først igen, når den bruges i Claude Code; den står
+som "udløbet login" under Indstillinger → Token-kilde.
+
 Der findes også en Home Assistant-udgave med de samme sensorer, prognoser og
 visninger: [ClaudeTimer-HA](https://github.com/TimeWinder-dk/ClaudeTimer-HA).
 

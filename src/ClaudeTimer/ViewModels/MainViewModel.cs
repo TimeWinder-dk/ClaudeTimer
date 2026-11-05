@@ -411,22 +411,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         var tokens = await ReadAllTokensAsync();
         var sources = SelectedTokenSource == TokenSource.Automatic
-            ? AllSources.Where(source => source != TokenSource.ClaudeDesktop || IsClaudeDesktopEnabled).ToArray()
+            ? AllSources.Where(source => source != TokenSource.ClaudeDesktop || IsClaudeDesktopEnabled).ToHashSet()
             : [SelectedTokenSource];
 
         var discovered = new List<(string Key, ClaudeAccount? Profile, List<AccountCredential> Credentials)>();
-        foreach (var source in sources)
+        foreach (var credential in tokens.Where(credential => sources.Contains(credential.Source)))
         {
-            if (tokens[source] is not { } token)
-            {
-                continue;
-            }
-
-            var profile = await TryGetProfileAsync(token);
+            var profile = await TryGetProfileAsync(credential.Token);
 
             // Uden profil (fx netværksfejl eller afvist token) kan vi ikke vide,
             // hvilken konto tokenet tilhører, så kilden står for sig selv.
-            var key = profile?.Key ?? $"source:{source}";
+            var key = profile?.Key ?? $"source:{credential.Source}:{credential.Profile}";
             var group = discovered.FirstOrDefault(entry => entry.Key == key);
             if (group.Credentials is null)
             {
@@ -434,7 +429,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 discovered.Add(group);
             }
 
-            group.Credentials.Add(new AccountCredential(source, token));
+            // Samme konto kan være logget ind flere steder; samme token tæller kun én gang.
+            if (group.Credentials.All(existing => existing.Token != credential.Token))
+            {
+                group.Credentials.Add(credential);
+            }
         }
 
         MergeAccounts(discovered);
@@ -509,7 +508,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         foreach (var account in accounts)
         {
-            var sourceNames = string.Join(", ", account.Credentials.Select(credential => SourceLabel(credential.Source)));
+            var sourceNames = string.Join(", ", account.Credentials.Select(CredentialLabel).Distinct());
             var profile = account.Profile;
             var email = profile?.Email ?? profile?.DisplayName ?? profile?.AccountId;
 
@@ -552,6 +551,35 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _ => source.ToString()
     };
 
+    internal static string CredentialLabel(AccountCredential credential) =>
+        credential.Profile is { Length: > 0 } profile
+            ? $"{SourceLabel(credential.Source)} ({profile})"
+            : SourceLabel(credential.Source);
+
+    /// <summary>Statuslinje for kontoprofilerne i indstillingerne, eller null når der ingen er.</summary>
+    internal static string? DescribeProfiles(string directory, IReadOnlyList<ClaudeCodeProfile> profiles)
+    {
+        if (profiles.Count == 0)
+        {
+            return null;
+        }
+
+        var active = profiles.Where(profile => profile.AccessToken is not null).Select(profile => profile.Name).ToList();
+        var expired = profiles.Where(profile => profile.AccessToken is null).Select(profile => profile.Name).ToList();
+        var text = $"Kontoprofiler ({directory}): {profiles.Count} fundet";
+        if (active.Count > 0)
+        {
+            text += $" – aktive: {string.Join(", ", active)}";
+        }
+
+        if (expired.Count > 0)
+        {
+            text += $". Udløbet login: {string.Join(", ", expired)} – brug kontoen i Claude Code, så fornyes det";
+        }
+
+        return text + ".";
+    }
+
     private async Task<ClaudeAccount?> TryGetProfileAsync(string token)
     {
         if (_profileCache.TryGetValue(token, out var cached))
@@ -577,10 +605,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async Task<Dictionary<TokenSource, string?>> ReadAllTokensAsync()
+    private async Task<List<AccountCredential>> ReadAllTokensAsync()
     {
         var manual = Clean(await _tokenStore.LoadAsync());
         var claudeCode = Clean(await _credentialReader.TryReadAccessTokenAsync());
+        var profiles = await _credentialReader.ReadProfilesAsync();
         // Desktop-tokenet kræver dekryptering af en anden apps nøgle (DPAPI), hvilket
         // sikkerhedsværktøjer som Defender med rette reagerer på – derfor kun efter tilvalg.
         var desktop = IsClaudeDesktopEnabled
@@ -593,6 +622,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ClaudeCodeCredentialStatus = claudeCode is not null
             ? $"Claude Code: fundet ({_credentialReader.CredentialPath})."
             : $"Claude Code: intet gyldigt login ({_credentialReader.CredentialPath}). Log ind i terminalen eller VS Code.";
+        if (DescribeProfiles(_credentialReader.ProfilesDirectory, profiles) is { } profileStatus)
+        {
+            ClaudeCodeCredentialStatus += Environment.NewLine + profileStatus;
+        }
         ClaudeDesktopCredentialStatus = _desktopReader.DataDirectory is null
             ? "Claude Desktop: appen er ikke fundet."
             : !IsClaudeDesktopEnabled
@@ -601,12 +634,31 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     ? "Claude Desktop: fundet."
                     : "Claude Desktop: intet gyldigt login. Åbn appen og log ind.";
 
-        return new Dictionary<TokenSource, string?>
+        var credentials = new List<AccountCredential>();
+        if (manual is not null)
         {
-            [TokenSource.Manual] = manual,
-            [TokenSource.ClaudeCode] = claudeCode,
-            [TokenSource.ClaudeDesktop] = desktop
-        };
+            credentials.Add(new AccountCredential(TokenSource.Manual, manual));
+        }
+
+        if (claudeCode is not null)
+        {
+            credentials.Add(new AccountCredential(TokenSource.ClaudeCode, claudeCode));
+        }
+
+        foreach (var profile in profiles)
+        {
+            if (Clean(profile.AccessToken) is { } token)
+            {
+                credentials.Add(new AccountCredential(TokenSource.ClaudeCode, token, profile.Name));
+            }
+        }
+
+        if (desktop is not null)
+        {
+            credentials.Add(new AccountCredential(TokenSource.ClaudeDesktop, desktop));
+        }
+
+        return credentials;
 
         static string? Clean(string? token) => string.IsNullOrWhiteSpace(token) ? null : token;
     }

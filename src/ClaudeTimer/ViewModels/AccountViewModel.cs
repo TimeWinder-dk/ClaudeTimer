@@ -8,7 +8,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace ClaudeTimer.ViewModels;
 
 /// <summary>Et token fra en bestemt kilde.</summary>
-public sealed record AccountCredential(TokenSource Source, string Token);
+/// <param name="Profile">Navnet på en Claude Code-kontoprofil, eller null for standardlogin.</param>
+public sealed record AccountCredential(TokenSource Source, string Token, string? Profile = null);
 
 /// <summary>Hvornår der skal vises notifikationer for en konto.</summary>
 public sealed record NotificationOptions(bool Enabled, IReadOnlyList<int> Thresholds, bool OnReset)
