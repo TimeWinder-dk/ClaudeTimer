@@ -100,6 +100,46 @@ public sealed partial class UsageCardViewModel : ObservableObject
         var (text, warning) = Pace(Utilization, ResetsAt, WindowLength, now);
         PaceText = text;
         IsPaceWarning = warning;
+        ForecastPercent = Projected(Utilization, ResetsAt, WindowLength, now) ?? double.NaN;
+    }
+
+    /// <summary>Forventet forbrug ved nulstilling (NaN = ingen prognose). Vises som markør på måleren.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasForecast))]
+    private double _forecastPercent = double.NaN;
+
+    public bool HasForecast => !double.IsNaN(ForecastPercent);
+
+    /// <summary>
+    /// Lineær fremskrivning til nulstilling ud fra den tid, der er gået af vinduet.
+    /// Null for tidligt i vinduet (første 5 %, mindst 10 min), under 1 % forbrug eller
+    /// uden kendt vindueslængde – så giver en prognose kun støj. Samme regel som i
+    /// Home Assistant-integrationen.
+    /// </summary>
+    internal static double? Projected(
+        double utilization,
+        DateTimeOffset? resetsAt,
+        TimeSpan? windowLength,
+        DateTimeOffset now)
+    {
+        if (utilization >= 100)
+        {
+            return utilization;
+        }
+
+        if (resetsAt is not { } reset || windowLength is not { } length || reset <= now)
+        {
+            return null;
+        }
+
+        var elapsed = length - (reset - now);
+        var minimumElapsed = TimeSpan.FromTicks(Math.Max(length.Ticks / 20, TimeSpan.FromMinutes(10).Ticks));
+        if (elapsed < minimumElapsed || utilization < 1)
+        {
+            return null;
+        }
+
+        return utilization * (length / elapsed);
     }
 
     /// <summary>
@@ -117,26 +157,17 @@ public sealed partial class UsageCardViewModel : ObservableObject
             return ("Grænsen er nået", true);
         }
 
-        if (resetsAt is not { } reset || windowLength is not { } length || reset <= now)
+        if (Projected(utilization, resetsAt, windowLength, now) is not { } projected)
         {
             return (string.Empty, false);
         }
 
-        var elapsed = length - (reset - now);
-
-        // For tidligt i vinduet giver en prognose kun støj.
-        var minimumElapsed = TimeSpan.FromTicks(Math.Max(length.Ticks / 20, TimeSpan.FromMinutes(10).Ticks));
-        if (elapsed < minimumElapsed || utilization < 1)
-        {
-            return (string.Empty, false);
-        }
-
-        var projected = utilization * (length / elapsed);
         if (projected < 100)
         {
             return ($"Prognose ved nulstilling: {Math.Round(projected):0} %", false);
         }
 
+        var elapsed = windowLength!.Value - (resetsAt!.Value - now);
         var hitsLimitAt = now + (elapsed * ((100 - utilization) / utilization));
         var local = hitsLimitAt.ToLocalTime();
         var when = local.Date == now.ToLocalTime().Date

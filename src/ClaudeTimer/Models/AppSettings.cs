@@ -22,9 +22,21 @@ public enum AppTheme
     Dark
 }
 
+/// <summary>Hvordan grænserne vises i hovedvinduet.</summary>
+public enum UsageView
+{
+    /// <summary>Kort med stor procent og bjælke (den oprindelige visning).</summary>
+    Cards,
+
+    /// <summary>Målere (gauges) med prognose-markør.</summary>
+    Gauges
+}
+
 public sealed class AppSettings
 {
     public AppTheme Theme { get; set; } = AppTheme.System;
+
+    public UsageView UsageView { get; set; } = UsageView.Cards;
 
     /// <summary>Tegn den mest pressede grænse i bakke-ikonet i stedet for logoet.</summary>
     public bool ShowUsageInTrayIcon { get; set; } = true;

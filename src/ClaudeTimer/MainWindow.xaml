@@ -94,6 +94,30 @@
                     </TextBlock>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Margin="0,0,4,0"
+                            Command="{Binding ToggleUsageViewCommand}"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                <Setter Property="ToolTip" Value="Vis som målere" />
+                                <Setter Property="Content">
+                                    <Setter.Value>
+                                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16" Text="&#xEC4A;" />
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsGaugeView}" Value="True">
+                                        <Setter Property="ToolTip" Value="Vis som kort" />
+                                        <Setter Property="Content">
+                                            <Setter.Value>
+                                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="16" Text="&#xF0E2;" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     <Button Command="{Binding OpenSettingsCommand}"
                             Style="{StaticResource IconButtonStyle}"
                             ToolTip="Indstillinger"
@@ -152,7 +176,18 @@
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="22" ShadowDepth="3" Opacity="0.07" />
                                 </Border.Effect>
-                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource UsageCardTemplate}" />
+                                <ContentControl Content="{Binding}">
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="ContentTemplate" Value="{StaticResource UsageCardTemplate}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.IsGaugeView, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                    <Setter Property="ContentTemplate" Value="{StaticResource UsageGaugeTemplate}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -343,6 +378,16 @@
                                 <RadioButton GroupName="Theme"
                                              Content="Mørk"
                                              IsChecked="{Binding SelectedTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Margin="0,0,18,8"
+                                             GroupName="UsageView"
+                                             Content="Kort"
+                                             IsChecked="{Binding SelectedUsageView, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Cards}" />
+                                <RadioButton Margin="0,0,18,8"
+                                             GroupName="UsageView"
+                                             Content="Målere"
+                                             IsChecked="{Binding SelectedUsageView, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Gauges}" />
                             </StackPanel>
                             <CheckBox Margin="0,6,0,4"
                                       Content="Vis forbruget i bakke-ikonet"

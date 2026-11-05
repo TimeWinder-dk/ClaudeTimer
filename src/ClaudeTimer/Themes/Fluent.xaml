@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:ClaudeTimer.Controls">
     <SolidColorBrush x:Key="CanvasBrush" Color="#F5F5F7" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="#FCFCFD" />
     <SolidColorBrush x:Key="TextBrush" Color="#19191B" />
@@ -325,6 +326,97 @@
         </Setter>
     </Style>
 
+    <!-- Nedtælling og lokalt nulstillingstidspunkt; deles af kort og måler. -->
+    <DataTemplate x:Key="UsageResetTemplate">
+        <StackPanel>
+            <TextBlock FontSize="11"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       Text="NULSTILLER OM" />
+            <TextBlock Margin="0,4,0,0"
+                       FontFamily="Cascadia Mono, Consolas"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Text="{Binding Countdown}" />
+            <TextBlock Margin="0,7,0,0"
+                       FontSize="12"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       Text="{Binding LocalResetTime}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Tempo: holder forbruget til nulstilling? Deles af kort og måler. -->
+    <Style x:Key="PaceTextStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Text" Value="{Binding PaceText}" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding HasPace}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsPaceWarning}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource CriticalBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate x:Key="UsageGaugeTemplate">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel>
+                <TextBlock FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AccentBrush}"
+                           Text="{Binding Eyebrow}" />
+                <TextBlock Margin="0,5,0,0"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Text="{Binding Title}" />
+            </StackPanel>
+            <StackPanel Grid.Row="1" Margin="0,14,0,10" VerticalAlignment="Center">
+                <Grid Height="136">
+                    <controls:UsageGauge Value="{Binding Utilization}"
+                                         Forecast="{Binding ForecastPercent}"
+                                         Thickness="13"
+                                         TrackBrush="{DynamicResource TrackFillBrush}"
+                                         ForecastBrush="{DynamicResource MutedTextBrush}">
+                        <controls:UsageGauge.Style>
+                            <Style TargetType="controls:UsageGauge">
+                                <Setter Property="ValueBrush" Value="{DynamicResource GoodBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Level}" Value="Warning">
+                                        <Setter Property="ValueBrush" Value="{DynamicResource WarningBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Level}" Value="Critical">
+                                        <Setter Property="ValueBrush" Value="{DynamicResource CriticalBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </controls:UsageGauge.Style>
+                    </controls:UsageGauge>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8,0,0">
+                        <TextBlock HorizontalAlignment="Center"
+                                   FontSize="34"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding Percentage}" />
+                        <TextBlock HorizontalAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource MutedTextBrush}"
+                                   Text="udnyttet" />
+                    </StackPanel>
+                </Grid>
+                <TextBlock Margin="0,2,0,0" TextAlignment="Center" Style="{StaticResource PaceTextStyle}" />
+            </StackPanel>
+            <ContentControl Grid.Row="2" Content="{Binding}" ContentTemplate="{StaticResource UsageResetTemplate}" />
+        </Grid>
+    </DataTemplate>
+
     <DataTemplate x:Key="UsageCardTemplate">
         <Grid>
             <Grid.RowDefinitions>
@@ -380,42 +472,9 @@
                         </Style>
                     </ProgressBar.Style>
                 </ProgressBar>
-                <!-- Tempo: holder forbruget til nulstilling? -->
-                <TextBlock Margin="0,8,0,0"
-                           FontSize="12"
-                           Text="{Binding PaceText}"
-                           TextWrapping="Wrap">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasPace}" Value="False">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsPaceWarning}" Value="True">
-                                    <Setter Property="Foreground" Value="{DynamicResource CriticalBrush}" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <TextBlock Margin="0,8,0,0" Style="{StaticResource PaceTextStyle}" />
             </StackPanel>
-            <StackPanel Grid.Row="2">
-                <TextBlock FontSize="11"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource MutedTextBrush}"
-                           Text="NULSTILLER OM" />
-                <TextBlock Margin="0,4,0,0"
-                           FontFamily="Cascadia Mono, Consolas"
-                           FontSize="22"
-                           FontWeight="SemiBold"
-                           Text="{Binding Countdown}" />
-                <TextBlock Margin="0,7,0,0"
-                           FontSize="12"
-                           Foreground="{DynamicResource MutedTextBrush}"
-                           Text="{Binding LocalResetTime}" />
-            </StackPanel>
+            <ContentControl Grid.Row="2" Content="{Binding}" ContentTemplate="{StaticResource UsageResetTemplate}" />
         </Grid>
     </DataTemplate>
 </ResourceDictionary>

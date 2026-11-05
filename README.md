@@ -12,6 +12,13 @@ Appen viser for hvert vindue:
 - aktuel udnyttelse i procent
 - lokal nedtælling med sekundpræcision
 - det præcise lokale nulstillingstidspunkt
+- prognose: forventet forbrug ved nulstilling, eller hvornår 100 % rammes
+
+Grænserne kan vises som **kort** eller **målere** (gauges med prognose-markør). Skift
+med knappen øverst til højre eller under Indstillinger → Udseende.
+
+Der findes også en Home Assistant-udgave med de samme sensorer, prognoser og
+visninger: [ClaudeTimer-HA](https://github.com/TimeWinder-dk/ClaudeTimer-HA).
 
 Data hentes fra Claudes OAuth usage-endpoint. API-data opdateres hvert femte
 minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret

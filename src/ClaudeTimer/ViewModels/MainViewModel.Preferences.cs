@@ -17,6 +17,12 @@ public sealed partial class MainViewModel
     private AppTheme _selectedTheme;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGaugeView))]
+    private UsageView _selectedUsageView;
+
+    public bool IsGaugeView => SelectedUsageView == UsageView.Gauges;
+
+    [ObservableProperty]
     private bool _showUsageInTrayIcon;
 
     [ObservableProperty]
@@ -41,6 +47,7 @@ public sealed partial class MainViewModel
     private void LoadPreferences()
     {
         SelectedTheme = _settings.Theme;
+        SelectedUsageView = _settings.UsageView;
         ShowUsageInTrayIcon = _settings.ShowUsageInTrayIcon;
         NotificationsEnabled = _settings.NotificationsEnabled;
         NotifyOnReset = _settings.NotifyOnReset;
@@ -58,6 +65,21 @@ public sealed partial class MainViewModel
         SaveSettings();
         ThemeManager.Apply(value);
     }
+
+    partial void OnSelectedUsageViewChanged(UsageView value)
+    {
+        if (_isRevertingSetting)
+        {
+            return;
+        }
+
+        _settings.UsageView = value;
+        SaveSettings();
+    }
+
+    [RelayCommand]
+    private void ToggleUsageView() =>
+        SelectedUsageView = IsGaugeView ? UsageView.Cards : UsageView.Gauges;
 
     partial void OnShowUsageInTrayIconChanged(bool value)
     {

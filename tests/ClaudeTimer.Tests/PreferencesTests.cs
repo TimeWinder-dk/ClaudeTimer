@@ -37,6 +37,30 @@ public sealed class PreferencesTests
     }
 
     [Fact]
+    public void Projected_FeedsGaugeForecastMarker()
+    {
+        Assert.Equal(40, UsageCardViewModel.Projected(20, Now + TimeSpan.FromMinutes(150), FiveHours, Now));
+        Assert.Equal(250, UsageCardViewModel.Projected(50, Now + TimeSpan.FromHours(4), FiveHours, Now));
+        Assert.Equal(100, UsageCardViewModel.Projected(100, Now + TimeSpan.FromHours(2), FiveHours, Now));
+        Assert.Null(UsageCardViewModel.Projected(30, Now + TimeSpan.FromMinutes(295), FiveHours, Now));
+        Assert.Null(UsageCardViewModel.Projected(30, Now + TimeSpan.FromHours(2), null, Now));
+    }
+
+    [Fact]
+    public void Tick_SetsForecastPercent_OrNaN()
+    {
+        var card = new UsageCardViewModel("5 timer", "AKTUEL SESSION") { WindowLength = FiveHours };
+        card.Update(20, Now + TimeSpan.FromMinutes(150));
+        card.Tick(Now);
+        Assert.Equal(40, card.ForecastPercent, 3);
+        Assert.True(card.HasForecast);
+
+        card.Update(20, Now + TimeSpan.FromMinutes(295));
+        card.Tick(Now);
+        Assert.False(card.HasForecast);
+    }
+
+    [Fact]
     public void DescribeChange_ReportsHighestCrossedThreshold()
     {
         var options = new NotificationOptions(true, [80, 95], true);
