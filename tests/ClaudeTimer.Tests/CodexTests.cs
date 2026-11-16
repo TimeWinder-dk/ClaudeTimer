@@ -121,6 +121,6 @@ public sealed class CodexTests
 
         Assert.Equal("ChatGPT", chatGpt.ShortName);
         Assert.Equal("tha@timewinder.dk · ChatGPT Team", chatGpt.DisplayName);
-        Assert.Equal("ChatGPT Team · Codex", chatGpt.Subtitle);
+        Assert.Equal("Codex", chatGpt.Subtitle);
     }
 }

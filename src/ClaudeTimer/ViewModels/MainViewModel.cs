@@ -571,7 +571,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 : isDuplicate && profile.OrganizationName is { Length: > 0 } organization
                     ? organization
                     : email.Split('@')[0];
-            account.Subtitle = profile.OrganizationName is { Length: > 0 } orgName
+            // Hos ChatGPT står planen allerede i titlen.
+            account.Subtitle = !isChatGpt && profile.OrganizationName is { Length: > 0 } orgName
                 ? $"{orgName} · {sourceNames}"
                 : sourceNames;
         }
