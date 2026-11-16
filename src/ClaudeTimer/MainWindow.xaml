@@ -300,6 +300,13 @@
                             <TextBlock Margin="26,2,0,0" Style="{StaticResource SettingsHintStyle}" Text="{Binding ClaudeCodeCredentialStatus}" />
                             <TextBlock Margin="26,2,0,0" Style="{StaticResource SettingsHintStyle}" Text="{Binding ClaudeDesktopCredentialStatus}" />
                             <TextBlock Margin="26,2,0,0" Style="{StaticResource SettingsHintStyle}" Text="{Binding ManualTokenStatus}" />
+                            <CheckBox Margin="0,12,0,4"
+                                      Content="Vis også ChatGPT-forbrug (Codex-login)"
+                                      IsChecked="{Binding UseCodex}" />
+                            <TextBlock Margin="26,0,0,0"
+                                       Style="{StaticResource SettingsHintStyle}"
+                                       Text="Bruger det ChatGPT-login, som Codex (CLI, VS Code-udvidelsen eller Codex-appen) har gemt. Vises i sin egen fane ved siden af Claude." />
+                            <TextBlock Margin="26,2,0,0" Style="{StaticResource SettingsHintStyle}" Text="{Binding CodexCredentialStatus}" />
                             <TextBlock Margin="26,6,0,0"
                                        FontSize="12"
                                        FontWeight="SemiBold"

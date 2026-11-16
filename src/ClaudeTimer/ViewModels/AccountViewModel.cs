@@ -9,7 +9,12 @@ namespace ClaudeTimer.ViewModels;
 
 /// <summary>Et token fra en bestemt kilde.</summary>
 /// <param name="Profile">Navnet på en Claude Code-kontoprofil, eller null for standardlogin.</param>
-public sealed record AccountCredential(TokenSource Source, string Token, string? Profile = null);
+/// <param name="Account">Kontoen, når den kendes uden opslag (ChatGPT-tokenet bærer den selv).</param>
+public sealed record AccountCredential(
+    TokenSource Source,
+    string Token,
+    string? Profile = null,
+    ClaudeAccount? Account = null);
 
 /// <summary>Hvornår der skal vises notifikationer for en konto.</summary>
 public sealed record NotificationOptions(bool Enabled, IReadOnlyList<int> Thresholds, bool OnReset)
@@ -17,7 +22,7 @@ public sealed record NotificationOptions(bool Enabled, IReadOnlyList<int> Thresh
     public static NotificationOptions None { get; } = new(false, [], false);
 }
 
-/// <summary>Én Claude-konto (konto + organisation) med sine forbrugskort – én fane.</summary>
+/// <summary>Én Claude- eller ChatGPT-konto (konto + organisation) med sine forbrugskort – én fane.</summary>
 public sealed partial class AccountViewModel : ObservableObject
 {
     private DateTimeOffset? _lastBoundaryRefresh;
@@ -63,14 +68,14 @@ public sealed partial class AccountViewModel : ObservableObject
 
     public ClaudeAccount? Profile { get; set; }
 
-    /// <summary>Tokens for kontoen i prioriteret rækkefølge (manuelt, Claude Code, Desktop).</summary>
+    /// <summary>Tokens for kontoen i prioriteret rækkefølge (manuelt, Claude Code, Desktop, Codex).</summary>
     public IReadOnlyList<AccountCredential> Credentials { get; set; } = [];
 
     public ObservableCollection<UsageCardViewModel> Cards { get; } = new();
 
     public bool IsBusy { get; private set; }
 
-    public async Task RefreshAsync(IClaudeUsageClient client, IClock clock)
+    public async Task RefreshAsync(IClaudeUsageClient client, ICodexUsageClient codexClient, IClock clock)
     {
         if (IsBusy || Credentials.Count == 0)
         {
@@ -88,7 +93,9 @@ public sealed partial class AccountViewModel : ObservableObject
             {
                 try
                 {
-                    var usage = await client.GetUsageAsync(credential.Token, CancellationToken.None);
+                    var usage = credential.Source == TokenSource.Codex
+                        ? await codexClient.GetUsageAsync(credential.Token, credential.Account?.OrganizationId, CancellationToken.None)
+                        : await client.GetUsageAsync(credential.Token, CancellationToken.None);
                     Apply(usage, clock.Now);
                     HasData = usage.Windows.Count > 0;
                     StatusText = HasData ? "Forbruget er opdateret" : "Ingen forbrugsgrænser fundet";

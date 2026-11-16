@@ -23,6 +23,9 @@ egen fane. Appen læser kun tokens og fornyer dem aldrig. En konto, der ikke har
 brugt i et stykke tid, vises derfor først igen, når den bruges i Claude Code; den står
 som "udløbet login" under Indstillinger → Token-kilde.
 
+Er du logget ind i Codex med en ChatGPT-konto, vises ChatGPT-forbruget (5 timer og
+7 døgn, som i Codex' egen forbrugsmenu) i sin egen fane ved siden af Claude.
+
 Der findes også en Home Assistant-udgave med de samme sensorer, prognoser og
 visninger: [ClaudeTimer-HA](https://github.com/TimeWinder-dk/ClaudeTimer-HA).
 
@@ -35,9 +38,9 @@ minut; nedtællingerne opdateres lokalt hvert sekund. Ved et passeret
 Hent den nyeste [release](https://github.com/TimeWinder-dk/ClaudeTimer/releases)
 og vælg én af:
 
-- Direkte download af installer: [ClaudeTimer-Setup-1.7.0.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.7.0/ClaudeTimer-Setup-1.7.0.exe)
-- SHA256 (installer): [ClaudeTimer-Setup-1.7.0.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.7.0/ClaudeTimer-Setup-1.7.0.exe.sha256)
-- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.7.0/SHA256SUMS.txt)
+- Direkte download af installer: [ClaudeTimer-Setup-1.8.0.exe](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.8.0/ClaudeTimer-Setup-1.8.0.exe)
+- SHA256 (installer): [ClaudeTimer-Setup-1.8.0.exe.sha256](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.8.0/ClaudeTimer-Setup-1.8.0.exe.sha256)
+- Alle checksums: [SHA256SUMS.txt](https://github.com/TimeWinder-dk/ClaudeTimer/releases/download/v1.8.0/SHA256SUMS.txt)
 
 - **ClaudeTimer-Setup-*.exe** — dobbeltklik-installer. Installerer per bruger i
   `%LOCALAPPDATA%\Programs\ClaudeTimer` (ingen administrator), tilbyder genveje på
@@ -56,7 +59,7 @@ offline — fx ved at kopiere filen til en maskine uden internet.
 Kontrollér en download mod checksummen:
 
 ```powershell
-(Get-FileHash .\ClaudeTimer-Setup-1.7.0.exe -Algorithm SHA256).Hash
+(Get-FileHash .\ClaudeTimer-Setup-1.8.0.exe -Algorithm SHA256).Hash
 # sammenlign med linjen i SHA256SUMS.txt
 ```
 
@@ -92,7 +95,7 @@ MSI'en installerer per bruger til `%LOCALAPPDATA%\Programs\ClaudeTimer` og kan
 installeres uden admin med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.7.0-win-x64.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.8.0-win-x64.msi
 ```
 
 All-users MSI bygges via:
@@ -104,7 +107,7 @@ All-users MSI bygges via:
 Og installeres med:
 
 ```powershell
-msiexec /i .\artifacts\installer\ClaudeTimer-1.7.0-win-x64-allusers.msi
+msiexec /i .\artifacts\installer\ClaudeTimer-1.8.0-win-x64-allusers.msi
 ```
 
 Bemærk: all-users MSI opretter ikke genveje i denne version.
@@ -165,8 +168,20 @@ Tandhjulet øverst til højre åbner de samlede indstillinger, som gemmes i
 - *Kun manuelt* — kun det indsatte token. Det krypteres med Windows DPAPI
   (`CurrentUser`) og gemmes under `%LOCALAPPDATA%\ClaudeTimer\token.dat`.
 
+**ChatGPT (Codex)** — *Vis også ChatGPT-forbrug* (standard: til) læser det
+ChatGPT-login, som Codex CLI, VS Code-udvidelsen og Codex-appen deler i
+`%USERPROFILE%\.codex\auth.json` (eller `%CODEX_HOME%\auth.json`). Forbruget hentes fra
+samme endpoint, som Codex selv bruger (`chatgpt.com/backend-api/wham/usage`), og
+vises i en fane med kortnavnet "ChatGPT". Det gælder uanset valget af Claude-kilde
+ovenfor. Ligesom for Claude Code fornyer ClaudeTimer aldrig tokenet selv, fordi
+refresh-tokenet roterer og Codex så ville blive logget ud. Adgangstokenet gælder i
+omkring 10 dage og fornyes, når du bruger Codex. Logger Codex ind med en API-nøgle
+i stedet for ChatGPT, er der intet forbrug at vise. Er Codex sat op til at gemme
+login i Windows' nøglering (`cli_auth_credentials_store`), findes der ingen
+`auth.json`, og ChatGPT-fanen vises ikke.
+
 Tokens læses igen ved hver opdatering (hvert 5. minut), så fornyelser og
-konto-skift i Claude Code/Desktop slår igennem. Tokens logges aldrig.
+konto-skift i Claude Code/Desktop og Codex slår igennem. Tokens logges aldrig.
 
 Bakke-ikonets tooltip viser ved én konto en linje pr. grænse
 (`5 timer · 42 % · 01:12:33`) og ved flere konti én kompakt linje pr. konto

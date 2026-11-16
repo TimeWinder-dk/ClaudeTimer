@@ -19,6 +19,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly ITokenStore _tokenStore;
     private readonly IClaudeCodeCredentialReader _credentialReader;
     private readonly IClaudeDesktopCredentialReader _desktopReader;
+    private readonly ICodexCredentialReader _codexReader;
+    private readonly ICodexUsageClient _codexClient;
     private readonly ISettingsStore _settingsStore;
     private readonly IStartupManager _startupManager;
     private readonly IClock _clock;
@@ -61,6 +63,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private string _claudeDesktopCredentialStatus = string.Empty;
 
     [ObservableProperty]
+    private string _codexCredentialStatus = string.Empty;
+
+    [ObservableProperty]
     private string _manualTokenStatus = string.Empty;
 
     [ObservableProperty]
@@ -68,6 +73,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool _useClaudeDesktop;
+
+    [ObservableProperty]
+    private bool _useCodex;
 
     [ObservableProperty]
     private bool _startWithWindows;
@@ -115,6 +123,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ITokenStore tokenStore,
         IClaudeCodeCredentialReader credentialReader,
         IClaudeDesktopCredentialReader desktopReader,
+        ICodexCredentialReader codexReader,
+        ICodexUsageClient codexClient,
         ISettingsStore settingsStore,
         IStartupManager startupManager,
         IUpdateService updateService,
@@ -124,6 +134,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _tokenStore = tokenStore;
         _credentialReader = credentialReader;
         _desktopReader = desktopReader;
+        _codexReader = codexReader;
+        _codexClient = codexClient;
         _settingsStore = settingsStore;
         _startupManager = startupManager;
         _clock = clock;
@@ -135,6 +147,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             SelectedTokenSource = _settings.TokenSource;
             UseClaudeDesktop = _settings.UseClaudeDesktop;
+            UseCodex = _settings.UseCodex;
             StartWithWindows = _settings.StartWithWindows;
             StartHiddenInTray = _settings.StartHiddenInTray;
             RunAsAdministrator = _settings.RunAsAdministrator;
@@ -273,6 +286,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _ = RefreshAsync();
     }
 
+    partial void OnUseCodexChanged(bool value)
+    {
+        if (_isRevertingSetting)
+        {
+            return;
+        }
+
+        _settings.UseCodex = value;
+        SaveSettings();
+        _ = RefreshAsync();
+    }
+
     partial void OnStartHiddenInTrayChanged(bool value)
     {
         if (_isRevertingSetting)
@@ -390,7 +415,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            await Task.WhenAll(Accounts.ToList().Select(account => account.RefreshAsync(_usageClient, _clock)));
+            await Task.WhenAll(Accounts.ToList().Select(account => account.RefreshAsync(_usageClient, _codexClient, _clock)));
             _refreshTimer.Start();
         }
         finally
@@ -413,11 +438,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var sources = SelectedTokenSource == TokenSource.Automatic
             ? AllSources.Where(source => source != TokenSource.ClaudeDesktop || IsClaudeDesktopEnabled).ToHashSet()
             : [SelectedTokenSource];
+        // ChatGPT er et tilvalg ved siden af Claude-kilden, ikke et alternativ til den.
+        if (UseCodex)
+        {
+            sources.Add(TokenSource.Codex);
+        }
 
         var discovered = new List<(string Key, ClaudeAccount? Profile, List<AccountCredential> Credentials)>();
         foreach (var credential in tokens.Where(credential => sources.Contains(credential.Source)))
         {
-            var profile = await TryGetProfileAsync(credential.Token);
+            var profile = credential.Account ?? await TryGetProfileAsync(credential.Token);
 
             // Uden profil (fx netværksfejl eller afvist token) kan vi ikke vide,
             // hvilken konto tokenet tilhører, så kilden står for sig selv.
@@ -530,13 +560,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 continue;
             }
 
-            var isDuplicate = profile.Email is not null && duplicateEmails.Contains(profile.Email);
+            // ChatGPT-kontoen navngives altid efter planen, så den ikke forveksles med Claude.
+            var isChatGpt = account.Credentials.Any(credential => credential.Source == TokenSource.Codex);
+            var isDuplicate = isChatGpt || (profile.Email is not null && duplicateEmails.Contains(profile.Email));
             account.DisplayName = isDuplicate && profile.OrganizationName is { Length: > 0 } org
                 ? $"{email} · {org}"
                 : email;
-            account.ShortName = isDuplicate && profile.OrganizationName is { Length: > 0 } organization
-                ? organization
-                : email.Split('@')[0];
+            account.ShortName = isChatGpt
+                ? "ChatGPT"
+                : isDuplicate && profile.OrganizationName is { Length: > 0 } organization
+                    ? organization
+                    : email.Split('@')[0];
             account.Subtitle = profile.OrganizationName is { Length: > 0 } orgName
                 ? $"{orgName} · {sourceNames}"
                 : sourceNames;
@@ -548,6 +582,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         TokenSource.Manual => "Manuelt token",
         TokenSource.ClaudeCode => "Claude Code",
         TokenSource.ClaudeDesktop => "Claude Desktop",
+        TokenSource.Codex => "Codex",
         _ => source.ToString()
     };
 
@@ -615,6 +650,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var desktop = IsClaudeDesktopEnabled
             ? Clean(await _desktopReader.TryReadAccessTokenAsync())
             : null;
+        var codex = UseCodex ? await _codexReader.TryReadAsync() : null;
 
         ManualTokenStatus = manual is not null
             ? "Manuelt token: gemt (krypteret med Windows DPAPI)."
@@ -633,6 +669,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 : desktop is not null
                     ? "Claude Desktop: fundet."
                     : "Claude Desktop: intet gyldigt login. Åbn appen og log ind.";
+        CodexCredentialStatus = !UseCodex
+            ? "ChatGPT (Codex): slået fra."
+            : codex is not null
+                ? $"ChatGPT (Codex): fundet ({_codexReader.CredentialPath})."
+                : $"ChatGPT (Codex): intet gyldigt ChatGPT-login ({_codexReader.CredentialPath}). Log ind i Codex med din ChatGPT-konto.";
 
         var credentials = new List<AccountCredential>();
         if (manual is not null)
@@ -658,6 +699,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             credentials.Add(new AccountCredential(TokenSource.ClaudeDesktop, desktop));
         }
 
+        if (codex is not null)
+        {
+            credentials.Add(new AccountCredential(TokenSource.Codex, codex.AccessToken, Account: codex.Account));
+        }
+
         return credentials;
 
         static string? Clean(string? token) => string.IsNullOrWhiteSpace(token) ? null : token;
@@ -670,7 +716,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             if (account.Tick(now))
             {
-                _ = account.RefreshAsync(_usageClient, _clock);
+                _ = account.RefreshAsync(_usageClient, _codexClient, _clock);
             }
         }
 

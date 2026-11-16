@@ -12,7 +12,10 @@ public enum TokenSource
     Manual,
 
     /// <summary>Kun Claude Desktop-appens login.</summary>
-    ClaudeDesktop
+    ClaudeDesktop,
+
+    /// <summary>ChatGPT-login fra Codex. Styres af <see cref="AppSettings.UseCodex"/>, ikke af valget ovenfor.</summary>
+    Codex
 }
 
 public enum AppTheme
@@ -58,6 +61,9 @@ public sealed class AppSettings
     /// DPAPI-dekryptering af en anden apps nøgle, som sikkerhedsværktøjer markerer.
     /// </summary>
     public bool UseClaudeDesktop { get; set; }
+
+    /// <summary>Vis også ChatGPT-forbruget fra Codex' login, uanset hvilken Claude-kilde der er valgt.</summary>
+    public bool UseCodex { get; set; } = true;
 
     public bool StartWithWindows { get; set; }
 

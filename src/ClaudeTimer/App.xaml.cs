@@ -31,6 +31,19 @@ public partial class App : System.Windows.Application
                 AutomaticDecompression = System.Net.DecompressionMethods.All,
                 PooledConnectionLifetime = TimeSpan.FromMinutes(10)
             });
+            services.AddSingleton<ICodexCredentialReader, CodexCredentialReader>();
+            services.AddHttpClient<ICodexUsageClient, CodexUsageClient>(client =>
+            {
+                client.BaseAddress = new Uri("https://chatgpt.com/backend-api/");
+                client.Timeout = TimeSpan.FromSeconds(15);
+                client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("ClaudeTimer/1.0");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AutomaticDecompression = System.Net.DecompressionMethods.All,
+                PooledConnectionLifetime = TimeSpan.FromMinutes(10)
+            });
             services.AddHttpClient<IUpdateService, GitHubUpdateService>(client =>
             {
                 client.BaseAddress = new Uri("https://api.github.com/");
